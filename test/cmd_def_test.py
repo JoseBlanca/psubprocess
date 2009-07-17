@@ -94,16 +94,8 @@ class StreamsFromCmdTest(unittest.TestCase):
         #a simple case
         cmd = ['hola', '-i', 'caracola.txt']
         cmd_def = [{'options': ('-i', '--input'), 'io': 'in'}]
-        expected_streams = [{'streams': ['caracola.txt'], 'io':'in'}]
-        streams = get_streams_from_cmd(cmd, cmd_def=cmd_def)
-        _check_streams(streams, expected_streams)
-
-        #with two files
-        cmd = ['hola', '-i', 'seq.txt', 'qual.txt']
-        cmd_def = [{'options': ('-i', '--input'), 'io': 'in',
-                    'cmd_locations':slice(0, 2)}]
-        expected_streams = [{'streams': ['seq.txt', 'qual.txt'],
-                             'io':'in'}]
+        expected_streams = [{'fname': 'caracola.txt', 'io':'in',
+                             'cmd_location':2}]
         streams = get_streams_from_cmd(cmd, cmd_def=cmd_def)
         _check_streams(streams, expected_streams)
 
@@ -111,7 +103,8 @@ class StreamsFromCmdTest(unittest.TestCase):
         cmd = ['hola', '-i', 'caracola.txt']
         cmd_def = [{'options': ('-i', '--input'), 'io': 'in'},
                    {'options': ('-j', '--input2'), 'io': 'in'}]
-        expected_streams = [{'streams': ['caracola.txt'], 'io':'in'}]
+        expected_streams = [{'fname': 'caracola.txt', 'io':'in',
+                             'cmd_location': 2}]
         streams = get_streams_from_cmd(cmd, cmd_def=cmd_def)
         _check_streams(streams, expected_streams)
 
@@ -121,14 +114,16 @@ class StreamsFromCmdTest(unittest.TestCase):
         #the options we want is in the pre_argv, after the binary
         cmd = ['hola', 'hola.txt', '-i', 'caracola.txt']
         cmd_def = [{'options': 1, 'io': 'in'}]
-        expected_streams = [{'streams': ['hola.txt'], 'io':'in'}]
+        expected_streams = [{'fname': 'hola.txt', 'io':'in',
+                             'cmd_location':1}]
         streams = get_streams_from_cmd(cmd, cmd_def=cmd_def)
         _check_streams(streams, expected_streams)
 
         #the option we want is at the end of the cmd
         cmd = ['hola', '-i', 'caracola.txt', 'hola.txt']
         cmd_def = [{'options': -1, 'io': 'in'}]
-        expected_streams = [{'streams': ['hola.txt'], 'io':'in'}]
+        expected_streams = [{'fname': 'hola.txt', 'io':'in',
+                             'cmd_location':3}]
         streams = get_streams_from_cmd(cmd, cmd_def=cmd_def)
         _check_streams(streams, expected_streams)
 
@@ -137,13 +132,16 @@ class StreamsFromCmdTest(unittest.TestCase):
         'We want stdin, stdout and stderr as streams'
         #stdin
         cmd = ['hola']
-        cmd_def = [{'options': STDIN,  'io': 'in'},
-                   {'options': STDOUT, 'io': 'out'},
-                   {'options': STDERR, 'io': 'out'}]
-        expected_streams = [{'streams': [STDIN], 'io':'in'},
-                            {'streams': [STDOUT], 'io':'out'},
-                            {'streams': [STDERR], 'io':'out'}]
-        streams = get_streams_from_cmd(cmd, cmd_def=cmd_def)
+        cmd_def = []
+        stdout = 'stdout' #in the real world they will be files
+        stderr = 'stderr'
+        stdin  = 'stdin'
+
+        expected_streams = [{'fhand': stdin,  'io':'in',  'cmd_location':STDIN},
+                          {'fhand': stdout, 'io':'out', 'cmd_location':STDOUT},
+                          {'fhand': stderr, 'io':'out', 'cmd_location':STDERR}]
+        streams = get_streams_from_cmd(cmd, cmd_def=cmd_def, stdout=stdout,
+                                       stderr=stderr, stdin=stdin)
         _check_streams(streams, expected_streams)
 
 if __name__ == "__main__":

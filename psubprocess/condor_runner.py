@@ -1,4 +1,5 @@
-'''
+'''It launches processes using Condor with an interface similar to Popen
+
 Created on 14/07/2009
 
 @author: jose

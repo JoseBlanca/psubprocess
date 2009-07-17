@@ -22,60 +22,10 @@ Created on 14/07/2009
 import unittest
 from tempfile import NamedTemporaryFile
 from StringIO import StringIO
-import os, stat
+import os
 
 from psubprocess.condor_runner import write_condor_job_file, Popen
-
-TEST_BINARY = '''#!/usr/bin/python
-import sys, shutil, os
-
-args = sys.argv
-
-#-o something   send something to stdout
-#-e something   send something to stderr
-#-i some_file   send the file content to sdout
-#-t some_file   copy the -i file to -t file
-#-s and stdin   write stdin to stout
-#-r a number    return this retcode
-
-#are the commands in the argv?
-arg_indexes = {}
-for param in ('-o', '-e', '-i', '-t', '-s', '-r'):
-    try:
-        arg_indexes[param] = args.index(param)
-    except ValueError:
-        arg_indexes[param] = None
-
-#stdout, stderr
-if arg_indexes['-o']:
-    sys.stdout.write(args[arg_indexes['-o'] + 1])
-if arg_indexes['-e']:
-    sys.stderr.write(args[arg_indexes['-e'] + 1])
-#-i -t
-if arg_indexes['-i'] and not arg_indexes['-t']:
-    sys.stdout.write(open(args[arg_indexes['-i'] + 1]).read())
-elif arg_indexes['-i'] and arg_indexes['-t']:
-    shutil.copy(args[arg_indexes['-i'] + 1], args[arg_indexes['-t'] + 1])
-#stdin
-if arg_indexes['-s']:
-    stdin = sys.stdin.read()
-    sys.stdout.write(stdin)
-#retcode
-if arg_indexes['-r']:
-    retcode = int(args[arg_indexes['-r'] + 1])
-else:
-    retcode = 0
-sys.exit(retcode)
-'''
-
-def _create_test_binary():
-    'It creates a file with a test python binary in it'
-    fhand = NamedTemporaryFile(suffix='.py')
-    fhand.write(TEST_BINARY)
-    fhand.flush()
-    #it should be executable
-    os.chmod(fhand.name, stat.S_IXOTH | stat.S_IRWXU)
-    return fhand
+from test_utils import create_test_binary
 
 class CondorRunnerTest(unittest.TestCase):
     'It tests the condor runner'
@@ -116,7 +66,7 @@ Queue
     @staticmethod
     def test_run_condor_stdout():
         'It test that we can run condor job and retrieve stdout and stderr'
-        bin = _create_test_binary()
+        bin = create_test_binary()
         #a simple job
         cmd = [bin.name]
         cmd.extend(['-o', 'hola', '-e', 'caracola'])
@@ -131,7 +81,7 @@ Queue
     @staticmethod
     def test_run_condor_stdin():
         'It test that we can run condor job with stdin'
-        bin = _create_test_binary()
+        bin = create_test_binary()
         #a simple job
         cmd = [bin.name]
         cmd.extend(['-s'])
@@ -147,7 +97,7 @@ Queue
     @staticmethod
     def test_run_condor_retcode():
         'It test that we can run condor job and get the retcode'
-        bin = _create_test_binary()
+        bin = create_test_binary()
         #a simple job
         cmd = [bin.name]
         cmd.extend(['-r', '10'])
@@ -157,7 +107,7 @@ Queue
     @staticmethod
     def test_run_condor_in_file():
         'It test that we can run condor job with an input file'
-        bin = _create_test_binary()
+        bin = create_test_binary()
 
         in_file = NamedTemporaryFile()
         in_file.write('hola')
@@ -176,7 +126,7 @@ Queue
 
     def test_run_condor_in_out_file(self):
         'It test that we can run condor job with an output file'
-        bin = _create_test_binary()
+        bin = create_test_binary()
 
         in_file = NamedTemporaryFile()
         in_file.write('hola')
