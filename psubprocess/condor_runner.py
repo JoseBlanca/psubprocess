@@ -144,18 +144,20 @@ class Popen(object):
         it returns the modified cmd'''
         cmd_mod = cmd[:]
         for stream in streams:
-            for fpath in stream['streams']:
-                #for the output files we can't deal with transfering files with
-                #paths. Condor will deliver those files into the initialdir, not
-                #where we expected.
-                if (stream['io'] != 'in' and conf['transfer_files']
-                    and os.path.split(fpath)[-1] != fpath):
-                    msg = 'output files with paths are not transferable'
-                    raise ValueError(msg)
+            if 'fname' not in stream:
+                continue
+            fpath = stream['fname']
+            #for the output files we can't deal with transfering files with
+            #paths. Condor will deliver those files into the initialdir, not
+            #where we expected.
+            if (stream['io'] != 'in' and conf['transfer_files']
+                and os.path.split(fpath)[-1] != fpath):
+                msg = 'output files with paths are not transferable'
+                raise ValueError(msg)
 
-                index = cmd_mod.index(fpath)
-                fpath = os.path.split(fpath)[-1]
-                cmd_mod[index] = fpath
+            index = cmd_mod.index(fpath)
+            fpath = os.path.split(fpath)[-1]
+            cmd_mod[index] = fpath
         return cmd_mod
 
     def _create_condor_job_file(self, cmd, cmd_def, log_file, runner_conf,
@@ -190,7 +192,12 @@ class Popen(object):
         in_fnames = []
         for stream in streams:
             if stream['io'] == 'in':
-                in_fnames.extend(stream['streams'])
+                fname = None
+                if 'fname' in stream:
+                    fname = stream['fname']
+                else:
+                    fname = stream['fhand'].name
+                in_fnames.append(fname)
         parameters['input_fnames'] = in_fnames
 
         #now we can create the job file
@@ -239,3 +246,14 @@ class Popen(object):
     def terminate(self):
         'It runs condor_rm for the condor job'
         self.kill()
+
+def get_default_splits():
+    'It returns a suggested number of splits for this Popen runner'
+    stdout, stderr, retcode = call(['condor_status', '-total'])
+    if retcode:
+        msg = 'There was a problem with condor_status: ' + stderr
+        raise RuntimeError(msg)
+    for line in stdout.splitlines():
+        line = line.strip().lower()
+        if line.startswith('total') and 'owner' not in line:
+            return int(line.split()[1]) * 2

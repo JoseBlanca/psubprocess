@@ -24,7 +24,8 @@ from tempfile import NamedTemporaryFile
 from StringIO import StringIO
 import os
 
-from psubprocess.condor_runner import write_condor_job_file, Popen
+from psubprocess.condor_runner import (write_condor_job_file, Popen,
+                                       get_default_splits)
 from test_utils import create_test_binary
 
 class CondorRunnerTest(unittest.TestCase):
@@ -68,7 +69,7 @@ Queue
         'It test that we can run condor job and retrieve stdout and stderr'
         bin = create_test_binary()
         #a simple job
-        cmd = [bin.name]
+        cmd = [bin]
         cmd.extend(['-o', 'hola', '-e', 'caracola'])
         stdout = NamedTemporaryFile()
         stderr = NamedTemporaryFile()
@@ -77,13 +78,14 @@ Queue
         assert popen.wait() == 0 #waits till finishes and looks to the retcode
         assert open(stdout.name).read() == 'hola'
         assert open(stderr.name).read() == 'caracola'
+        os.remove(bin)
 
     @staticmethod
     def test_run_condor_stdin():
         'It test that we can run condor job with stdin'
         bin = create_test_binary()
         #a simple job
-        cmd = [bin.name]
+        cmd = [bin]
         cmd.extend(['-s'])
         stdin  = NamedTemporaryFile()
         stdout = NamedTemporaryFile()
@@ -93,16 +95,18 @@ Queue
                       stdout=stdout, stdin=stdin)
         assert popen.wait() == 0 #waits till finishes and looks to the retcode
         assert open(stdout.name).read() == 'hola'
+        os.remove(bin)
 
     @staticmethod
     def test_run_condor_retcode():
         'It test that we can run condor job and get the retcode'
         bin = create_test_binary()
         #a simple job
-        cmd = [bin.name]
+        cmd = [bin]
         cmd.extend(['-r', '10'])
         popen = Popen(cmd, runner_conf={'transfer_executable':True})
         assert popen.wait() == 10 #waits till finishes and looks to the retcode
+        os.remove(bin)
 
     @staticmethod
     def test_run_condor_in_file():
@@ -113,7 +117,7 @@ Queue
         in_file.write('hola')
         in_file.flush()
 
-        cmd = [bin.name]
+        cmd = [bin]
         cmd.extend(['-i', in_file.name])
         stdout = NamedTemporaryFile()
         stderr = NamedTemporaryFile()
@@ -123,6 +127,7 @@ Queue
 
         assert popen.wait() == 0 #waits till finishes and looks to the retcod
         assert open(stdout.name).read() == 'hola'
+        os.remove(bin)
 
     def test_run_condor_in_out_file(self):
         'It test that we can run condor job with an output file'
@@ -133,7 +138,7 @@ Queue
         in_file.flush()
         out_file = open('output.txt', 'w')
 
-        cmd = [bin.name]
+        cmd = [bin]
         cmd.extend(['-i', in_file.name, '-t', out_file.name])
         stdout = NamedTemporaryFile()
         stderr = NamedTemporaryFile()
@@ -150,7 +155,7 @@ Queue
         #mechanism is not used
         out_file = NamedTemporaryFile()
 
-        cmd = [bin.name]
+        cmd = [bin]
         cmd.extend(['-i', in_file.name, '-t', out_file.name])
         stdout = NamedTemporaryFile()
         stderr = NamedTemporaryFile()
@@ -163,7 +168,13 @@ Queue
             #pylint: disable-msg=W0704
         except ValueError:
             pass
+        os.remove(bin)
 
+    @staticmethod
+    def test_default_splits():
+        'It tests that we can get a suggested number of splits'
+        assert get_default_splits() > 0
+        assert isinstance(get_default_splits(), int)
 
 if __name__ == "__main__":
     #import sys;sys.argv = ['', 'Test.testName']

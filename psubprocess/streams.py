@@ -53,7 +53,7 @@ def get_streams_from_cmd(cmd, cmd_def, stdout=None, stdin=None, stderr=None):
     streams = []
     for param_def in cmd_def:
         options = param_def['options']
-        stream_values = []
+        stream_values = None
         #where is this stream located in the cmd?
         location = None
 
@@ -65,6 +65,8 @@ def get_streams_from_cmd(cmd, cmd_def, stdout=None, stdin=None, stderr=None):
             #we take 1 unit because the options should be 1 to the right
             #of the value
             index = _positive_int(options, cmd) - 1
+        elif options == STDIN:
+            index = STDIN
         else:
             #look for param in cmd
             try:
@@ -73,19 +75,24 @@ def get_streams_from_cmd(cmd, cmd_def, stdout=None, stdin=None, stderr=None):
                 index = None
 
         #get the stream values
-        if index is not None:
+        if index == STDIN:
+            location = STDIN
+            stream_values = stdin
+        elif index is not None:
             location = index + 1
             stream_values = cmd[location]
 
         #create the result dict
         stream = param_def.copy()
-        stream['fname']    = stream_values
+        if location is STDIN:
+            stream['fhand']    = stream_values
+        else:
+            stream['fname']    = stream_values
         stream['cmd_location'] = location
         streams.append(stream)
 
-    #We have to add also the stdin, stdout and stderr
-    for stream_name, fhand in ((STDIN, stdin), (STDOUT, stdout),
-                                (STDERR, stderr)):
+    #We have to add also the stdout and stderr
+    for stream_name, fhand in ((STDOUT, stdout), (STDERR, stderr)):
         if fhand is None:
             continue
         io_value = None

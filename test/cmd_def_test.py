@@ -132,17 +132,18 @@ class StreamsFromCmdTest(unittest.TestCase):
         'We want stdin, stdout and stderr as streams'
         #stdin
         cmd = ['hola']
-        cmd_def = []
+        cmd_def = [{'options':STDIN, 'io': 'in'}]
         stdout = 'stdout' #in the real world they will be files
         stderr = 'stderr'
         stdin  = 'stdin'
 
-        expected_streams = [{'fhand': stdin,  'io':'in',  'cmd_location':STDIN},
+        expected_streams = [{'fhand': stdin,  'io':'in', 'cmd_location':STDIN},
                           {'fhand': stdout, 'io':'out', 'cmd_location':STDOUT},
                           {'fhand': stderr, 'io':'out', 'cmd_location':STDERR}]
         streams = get_streams_from_cmd(cmd, cmd_def=cmd_def, stdout=stdout,
                                        stderr=stderr, stdin=stdin)
         _check_streams(streams, expected_streams)
+
 
 if __name__ == "__main__":
     #import sys;sys.argv = ['', 'Test.testName']

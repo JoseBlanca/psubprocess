@@ -26,6 +26,10 @@ from subprocess import Popen as StdPopen
 import os, tempfile, shutil, copy
 
 from psubprocess.streams import get_streams_from_cmd, STDOUT, STDERR, STDIN
+from psubprocess import condor_runner
+
+RUNNER_MODULES ={}
+RUNNER_MODULES['condor_runner'] = condor_runner
 
 class NamedTemporaryDir(object):
     '''This class creates temporary directories '''
@@ -82,23 +86,20 @@ def _calculate_divisions(num_items, splits):
     res = ((num_fragments1, num_items1), (num_fragments2, num_items2))
     return res
 
-def _write_file(dir, contents, suffix, return_fname):
-    '''It creates a new file with the given contents. It returns the path'''
-    #pylint: disable-msg=W0622
-    #we're redefining the built-in dir because is the clearest interface,
-    #and because this interface is used by tempdir
-    ofh = NamedTemporaryFile(dir=dir, delete=False, suffix=suffix)
-    ofh.write(contents)
-    ofh.flush()
-    if return_fname:
-        #the file won't be deleted, just closed,
-        #it will be deleted because is created in a
-        #temporary directory
-        file_ = ofh.name
-        ofh.close()
+def _items_in_file(fhand, expression_kind, expression):
+    '''Given an fhand and an expression it yields the items cutting where the
+    line matches the expression'''
+    sofar = fhand.readline()
+    for line in fhand:
+        if ((expression_kind == 'str' and expression in line) or
+             expression.search(line)):
+            yield sofar
+            sofar = line
+        else:
+            sofar += line
     else:
-        file_ = ofh
-    return file_
+        #the last item
+        yield sofar
 
 def _create_file_splitter_with_re(expression):
     '''Given an expression it creates a file splitter.
@@ -149,44 +150,29 @@ def _create_file_splitter_with_re(expression):
                                                                        nsplits)
         #we have to create nsplits1 files with nitems1 in it and nsplits2 files
         #with nitems2 items in it
-        splits_made = 0
-        new_fpaths  = []
+        new_files  = []
         fhand = open(fname, 'r')
-        for index_splits, nsplits in enumerate((nsplits1, nsplits2)):
-            nitems = (nitems1, nitems2)[index_splits]
+        items = _items_in_file(fhand, expression_kind, expression)
+        splits_made = 0
+        for nsplits, nitems in ((nsplits1, nitems1), (nsplits2, nitems2)):
             #we have to create nsplits files with nitems in it
-            #we just want to run the for nsplits times, we don't need the
-            #index variable
+            #we don't need the split_index for anything
             #pylint: disable-msg=W0612
-            for index in range(nsplits):
-                items_sofar = 0
-                sofar = fhand.readline()
+            for split_index in range(nsplits):
                 suffix = os.path.splitext(fname)[-1]
-                splits_made = 0
-                for line in fhand:
-                    #has the file the required pattern?
-                    if ((expression_kind == 'str' and expression in line) or
-                         expression.search(line)):
-                        items_sofar += 1
-                        if items_sofar >= nitems:
-                            #which is the work dir in which this file
-                            #should be located?
-                            work_dir = work_dirs[splits_made]
-                            ofile_ = _write_file(work_dir.name, sofar, suffix,
-                                                 file_is_str)
-                            new_fpaths.append(ofile_)
-                            sofar = line
-                            items_sofar = 0
-                            splits_made += 1
-                        else:
-                            sofar += line
-                    else:
-                        sofar += line
-                #now we write the last file
                 work_dir = work_dirs[splits_made]
-                ofname = _write_file(work_dir.name, sofar, suffix, file_is_str)
-                new_fpaths.append(ofname)
-        return new_fpaths
+                ofh = NamedTemporaryFile(dir=work_dir.name, delete=False,
+                                         suffix=suffix)
+                for item_index in range(nitems):
+                    ofh.write(items.next())
+                ofh.flush()
+                if file_is_str:
+                    new_files.append(ofh.name)
+                    ofh.close()
+                else:
+                    new_files.append(ofh)
+                splits_made += 1
+        return new_files
     return splitter
 
 def _output_splitter(file_, work_dirs):
@@ -271,6 +257,10 @@ class Popen(object):
         #if the runner is not given, we use subprocess.Popen
         if runner is None:
             runner = StdPopen
+        if cmd_def is None:
+            if stdin is not None:
+                raise ValueError('No cmd_def given but stdin present')
+            cmd_def = []
         #if the number of splits is not given we calculate them
         if splits is None:
             splits = self.default_splits(runner)
@@ -304,6 +294,9 @@ class Popen(object):
                 stderr = jobs['stderrs'][job_index]
             #for every job we go to its dir to launch it
             os.chdir(work_dir.name)
+            #we have to be sure that stdin is open for read
+            if stdin:
+                stdin = open(stdin.name)
             #we launch the job
             if runner == StdPopen:
                 popen = runner(cmd, stdout=stdout, stderr=stderr, stdin=stdin)
@@ -355,7 +348,9 @@ class Popen(object):
             for stream in streams:
                 #is the stream in the cmd or in is a std one?
                 location = stream['cmd_location']
-                if location == STDIN:
+                if location is None:
+                    continue
+                elif location == STDIN:
                     stdins.append(stream['fhand'])
                 elif location == STDOUT:
                     stdouts.append(stream['fhand'])
@@ -393,11 +388,36 @@ class Popen(object):
         #we have to do first the input files because the number of splits could
         #be changed by them
         #we split the input stream files into several splits
+        #we have to sort the input_stream_indexes, first we should take the ones
+        #that have an input file to be split
+        def to_be_split_first(stream1, stream2):
+            'It sorts the streams, the ones to be split go first'
+            split1 = None
+            split2 = None
+            for split, stream in ((split1, stream1), (split2, stream2)):
+                #maybe they shouldn't be split
+                if 'special' in stream and 'no_split' in stream['special']:
+                    split = False
+                    #maybe the have no file to split
+                    if (('fhand' in stream and stream['fhand'] is None) or
+                        ('fname' in stream and stream['fname'] is None) or
+                        ('fname' not in stream and 'fhand' not in stream)):
+                        split = False
+                    elif (('fhand' in stream and stream['fhand'] is not None) or
+                          ('fname' in stream and stream['fname'] is not None)):
+                        split = True
+            return int(split1) - int(split2)
+        input_stream_indexes = sorted(input_stream_indexes, to_be_split_first)
+
         first = True
         split_files = {}
         for index in input_stream_indexes:
             stream = streams[index]
             #splitter
+            if 'splitter' not in stream:
+                msg = 'An splitter should be provided for every input stream'
+                msg += 'missing for: ' + str(stream)
+                raise ValueError(msg)
             splitter = stream['splitter']
             #the splitter can be a re, in that case with create the function
             if '__call__' not in dir(splitter):
@@ -406,10 +426,14 @@ class Popen(object):
             #of the given work_dirs
             #the stream can have fname or fhands
             if 'fhand' in stream:
-                fname = stream['fhand'].name
+                file_ = stream['fhand']
             else:
-                fname = stream['fname']
-            files = splitter(fname, work_dirs)
+                file_ = stream['fname']
+            if file_ is None:
+                #the stream migth have no file associated
+                files = [None] * len(work_dirs)
+            else:
+                files = splitter(file_, work_dirs)
             #the files len can be different than splits, in that case we modify
             #the splits or we raise an error
             if len(files) != splits:
@@ -461,7 +485,9 @@ class Popen(object):
             #the number of processors
             return os.sysconf('SC_NPROCESSORS_ONLN')
         else:
-            return runner.default_splits()
+            module = runner.__module__.split('.')[-1]
+            module = RUNNER_MODULES[module]
+            return module.get_default_splits()
 
     def wait(self):
         'It waits for all the works to finnish'
