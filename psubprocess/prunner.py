@@ -52,6 +52,12 @@ def NamedTemporaryFile(dir=None, delete=False, suffix=''):
 
     This behaviour can be done with tempfile.NamedTemporaryFile in python > 2.6
     '''
+    #pylint: disable-msg=W0613
+    #delete is not being used, it's there as a reminder, once we start to use
+    #python 2.6 this function should be removed
+    #pylint: disable-msg=C0103
+    #pylint: disable-msg=W0622
+    #We want to mimick tempfile.NamedTemporaryFile
     fpath = tempfile.mkstemp(dir=dir, suffix=suffix)[1]
     return open(fpath, 'w')
 
@@ -76,17 +82,23 @@ def _calculate_divisions(num_items, splits):
     res = ((num_fragments1, num_items1), (num_fragments2, num_items2))
     return res
 
-def _write_file(dir, contents, suffix):
+def _write_file(dir, contents, suffix, return_fname):
     '''It creates a new file with the given contents. It returns the path'''
+    #pylint: disable-msg=W0622
+    #we're redefining the built-in dir because is the clearest interface,
+    #and because this interface is used by tempdir
     ofh = NamedTemporaryFile(dir=dir, delete=False, suffix=suffix)
     ofh.write(contents)
-    #the file won't be deleted, just closed,
-    #it will be deleted because is created in a
-    #temporary directory
-    fname = ofh.name
     ofh.flush()
-    ofh.close()
-    return fname
+    if return_fname:
+        #the file won't be deleted, just closed,
+        #it will be deleted because is created in a
+        #temporary directory
+        file_ = ofh.name
+        ofh.close()
+    else:
+        file_ = ofh
+    return file_
 
 def _create_file_splitter_with_re(expression):
     '''Given an expression it creates a file splitter.
@@ -100,14 +112,24 @@ def _create_file_splitter_with_re(expression):
         expression_kind = 'str'
     else:
         expression_kind = 're'
-    def splitter(fname, work_dirs):
+    def splitter(file_, work_dirs):
         '''It splits the given file into several splits.
 
         Every split will be located in one of the work_dirs, although it is not
         guaranteed to create as many splits as work dirs. If in the file there
         are less items than work_dirs some work_dirs will be left empty.
-        It returns a list with the fpaths for the splitted files.
+        It returns a list with the fpaths or fhands for the splitted files.
+        file_ can be an fhand or an fname.
         '''
+        #the file_ can be an fname or an fhand. which one is it?
+        file_is_str = None
+        if isinstance(file_, str):
+            fname = file_
+            file_is_str = True
+        else:
+            fname = file_.name
+            file_is_str = False
+
         #how many splits do we want?
         nsplits = len(work_dirs)
         #how many items are in the file? We assume that all files have the same
@@ -133,6 +155,9 @@ def _create_file_splitter_with_re(expression):
         for index_splits, nsplits in enumerate((nsplits1, nsplits2)):
             nitems = (nitems1, nitems2)[index_splits]
             #we have to create nsplits files with nitems in it
+            #we just want to run the for nsplits times, we don't need the
+            #index variable
+            #pylint: disable-msg=W0612
             for index in range(nsplits):
                 items_sofar = 0
                 sofar = fhand.readline()
@@ -144,13 +169,12 @@ def _create_file_splitter_with_re(expression):
                          expression.search(line)):
                         items_sofar += 1
                         if items_sofar >= nitems:
-                            #how many splits do we have now for this file?
-                            splits_now = splits_made
                             #which is the work dir in which this file
                             #should be located?
                             work_dir = work_dirs[splits_made]
-                            ofname = _write_file(work_dir.name, sofar, suffix)
-                            new_fpaths.append(ofname)
+                            ofile_ = _write_file(work_dir.name, sofar, suffix,
+                                                 file_is_str)
+                            new_fpaths.append(ofile_)
                             sofar = line
                             items_sofar = 0
                             splits_made += 1
@@ -160,17 +184,25 @@ def _create_file_splitter_with_re(expression):
                         sofar += line
                 #now we write the last file
                 work_dir = work_dirs[splits_made]
-                ofname = _write_file(work_dir.name, sofar, suffix)
+                ofname = _write_file(work_dir.name, sofar, suffix, file_is_str)
                 new_fpaths.append(ofname)
         return new_fpaths
     return splitter
 
-def _output_splitter(fname, work_dirs):
+def _output_splitter(file_, work_dirs):
     '''It creates one output file for every splits.
 
     Every split will be located in one of the work_dirs.
     It returns a list with the fpaths for the new output files.
     '''
+    #the file_ can be an fname or an fhand. which one is it?
+    file_is_str = None
+    if isinstance(file_, str):
+        fname = file_
+        file_is_str = True
+    else:
+        fname = file_.name
+        file_is_str = False
     #how many splits do we want?
     nsplits = len(work_dirs)
 
@@ -179,23 +211,46 @@ def _output_splitter(fname, work_dirs):
     for split_index in range(nsplits):
         suffix = os.path.splitext(fname)[-1]
         work_dir = work_dirs[split_index]
-        ofh = tempfile.NamedTemporaryFile(dir=work_dir.name, suffix=suffix)
+        #we use delete=False because this temp file is in a temp dir that will
+        #be completely deleted. If we use delete=True we get an error because
+        #the file might be already deleted when its __del__ method is called
+        ofh = NamedTemporaryFile(dir=work_dir.name, suffix=suffix,
+                                          delete=False)
         #the file will be deleted
-        #it will be deleted because we just need the name in the temporary
-        #directory. tempfile.mktemp would be better for this use, but it is
-        #deprecated
-        new_fpaths.append(ofh.name)
-        ofh.close()
+        #what do we need the fname or the fhand?
+        if file_is_str:
+            #it will be deleted because we just need the name in the temporary
+            #directory. tempfile.mktemp would be better for this use, but it is
+            #deprecated
+            new_fpaths.append(ofh.name)
+            ofh.close()
+        else:
+            new_fpaths.append(ofh)
     return new_fpaths
 
-def default_cat_joiner(out_fname, in_fnames):
+def default_cat_joiner(out_file_, in_files_):
     '''It joins the given in files into the given out file.
 
-    It requieres fnames, not fhands.
+    It works with fnames or fhands.
     '''
-    out_fhand = open(out_fname, 'w')
-    for in_fname in in_fnames:
-        in_fhand = open(in_fname, 'r')
+    #are we working with fhands or fnames?
+    file_is_str = None
+    if isinstance(out_file_, str):
+        file_is_str = True
+    else:
+        file_is_str = False
+
+    #the output fhand
+    if file_is_str:
+        out_fhand = open(out_file_, 'w')
+    else:
+        out_fhand = open(out_file_.name, 'w')
+    for in_file_ in in_files_:
+        #the input fhand
+        if file_is_str:
+            in_fhand = open(in_file_, 'r')
+        else:
+            in_fhand = open(in_file_.name, 'r')
         for line in in_fhand:
             out_fhand.write(line)
         in_fhand.close()
@@ -203,12 +258,13 @@ def default_cat_joiner(out_fname, in_fnames):
 
 class Popen(object):
     'It paralellizes the given processes divinding them into subprocesses.'
-
-    def __init__(self, cmd, cmd_def=None, runner=None, runner_conf=None,
-                 stdout=None, stderr=None, stdin=None, splits=None):
+    def __init__(self, cmd, cmd_def=None, runner=None, stdout=None, stderr=None,
+                 stdin=None, splits=None):
         '''
         Constructor
         '''
+        #we want the same interface as subprocess.popen
+        #pylint: disable-msg=R0913
         self._retcode = None
         self._outputs_collected = False
         #some defaults
@@ -243,7 +299,7 @@ class Popen(object):
             if jobs['stdins']:
                 stdin = jobs['stdins'][job_index]
             if jobs['stdouts']:
-                stdouts = jobs['stdouts'][job_index]
+                stdout = jobs['stdouts'][job_index]
             if jobs['stderrs']:
                 stderr = jobs['stderrs'][job_index]
             #for every job we go to its dir to launch it
@@ -265,6 +321,9 @@ class Popen(object):
         Every job has a cmd, work_dir and streams, this info is in the jobs dict
         with the keys: cmds, work_dirs, streams
         '''
+        #too many arguments, but similar interface to our __init__
+        #pylint: disable-msg=R0913
+        #pylint: disable-msg=R0914
         #the main job streams
         main_job_streams = get_streams_from_cmd(cmd, cmd_def, stdout=stdout,
                                                 stderr=stderr, stdin=stdin)
@@ -310,7 +369,7 @@ class Popen(object):
                     fpath    = stream['fname']
                     fname    = os.path.split(fpath)[-1]
                     new_cmd[location] = fname
-                    cmds.append(new_cmd)
+            cmds.append(new_cmd)
         return cmds, stdins, stdouts, stderrs
 
     @staticmethod
@@ -371,7 +430,7 @@ class Popen(object):
             #for th output we just create the new names, but we don't split
             #any file
             if 'fhand' in stream:
-                fname = stream['fhand'].name
+                fname = stream['fhand']
             else:
                 fname = stream['fname']
             files = _output_splitter(fname, work_dirs)
@@ -386,7 +445,10 @@ class Popen(object):
                 #we duplicate the original stream
                 new_stream = stream.copy()
                 #we set the new files
-                new_stream['fhand'] = split_files[stream_index]
+                if 'fhand' in stream:
+                    new_stream['fhand'] = split_files[stream_index][split_index]
+                else:
+                    new_stream['fname'] = split_files[stream_index][split_index]
                 new_streams.append(new_stream)
             new_streamss.append(new_streams)
 
@@ -419,20 +481,28 @@ class Popen(object):
             return
         #for each file in the main job cmd
         for stream_index, stream in enumerate(self._job['streams']):
-            if stream['io'] != 'in':
+            if stream['io'] == 'in':
                 #now we're dealing only with output files
                 continue
             #every subjob has a part to join for this output stream
             part_out_fnames = []
             for streams in self._jobs['streams']:
-                part_out_fnames.append(streams[stream_index]['fname'])
+                this_stream = streams[stream_index]
+                if 'fname' in this_stream:
+                    part_out_fnames.append(this_stream['fname'])
+                else:
+                    part_out_fnames.append(this_stream['fhand'])
             #we need a function to join this stream
             joiner = None
             if joiner in stream:
                 joiner = stream['joiner']
             else:
                 joiner = default_cat_joiner
-            default_cat_joiner(stream['fname'], part_out_fnames)
+            if 'fname' in stream:
+                out_file = stream['fname']
+            else:
+                out_file = stream['fhand']
+            default_cat_joiner(out_file, part_out_fnames)
 
         #now we can delete the tempdirs
         for work_dir in self._jobs['work_dirs']:

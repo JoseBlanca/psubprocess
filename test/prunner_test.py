@@ -44,9 +44,6 @@ class PRunnerTest(unittest.TestCase):
         stderr = NamedTemporaryFile()
         cmd_def = [{'options': ('-i', '--input'), 'io': 'in', 'splitter':''}]
         popen = Popen(cmd, stdout=stdout, stderr=stderr, cmd_def=cmd_def)
-        print open(stderr.name).read()
-        print open(stdout.name).read()
-        print popen.wait()
         assert popen.wait() == 0 #waits till finishes and looks to the retcod
         assert open(stdout.name).read() == 'hola'
         os.remove(bin)
