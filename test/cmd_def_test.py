@@ -24,61 +24,7 @@ import unittest
 from psubprocess.streams import (get_streams_from_cmd,
                                  STDIN, STDOUT, STDERR)
 
-#What's a stream
-#
-#A command takes some input streams and creates some ouput streams
-#An stream is a file-like object or a directory. In fact an stream can be
-#composed by several files (e.g. a seq and a qual file that should be splitted
-#together)
-#
-#Kinds of streams in a cmd
-#cmd arg1 arg2 -i opt1 opt2 -j opt3 arg3 < stdin > stdout stderr retcode
-#in this general command there are several types of streams:
-#   - previous arguments. arguments (without options) located before the first
-#   option (like arg1 and arg2)
-#   - options with one option, like opt3
-#   - options with several arguments, like -i that has opt1 and opt2
-#   - arguments (aka post_arguments). arguments located after the last option
-#   - stdin, stdout, stderr and retcode. The standard ones.
-#
-#How to define the streams
-#An stream is defined by a dict with the following keys: options, io, splitter,
-#value, special, location. All of them are optional except the options.
-#Options: It defines in which options or arguments is the stream found. It
-#should by just a value or a tuple.
-#Options kinds:
-#       - -i             the stream will be located after the parameter -i
-#       - (-o, --output) the stream will be after -o or --output
-#       - PRE_ARG        right after the cmd and before the first parameter
-#       - POST_ARG       after the last option
-#       - STDIN
-#       - STDOUT
-#       - STDERR
-#io: It defines if it's an input or an output stream for the cmd
-#splitter: It defines how the stream should be split. There are three ways of
-#definint it:
-#       - an str    that will be used to scan through the in streams, every
-#                   line with the str in in will be considered a token start
-#                   e.g '>' for the blast files
-#       - a re      every line with a match will be considered a token start
-#       - a function    the function should take the stream an return an
-#                       iterator with the tokens
-#joiner: A function that should take the out streams for all jobs and return
-#the joined stream. If not given the output stream will be just concatenated.
-#value: the value for the stream, this stream will not define the value in the
-#command line, it will be implicit
-#special: It defines some special treaments for the streams.
-#   - no_split      It shouldn't be split
-#   - no_transfer   It shouldn't be transfer to all nodes
-#   - no_abspath    Its path shouldn't be converted to absolute
-#   - create        It should be created before running the command
-#   - no_support    An error should be raised if used.
-#cmd_locations: If the location is not given the assumed location will be 0.
-#That means that the stream will be located in the 0 position after the option.
-#It can be either an int or an slice. In the slice case several substreams will
-#be taken together in the stream. Useful for instance for the case of two fasta
-#files with the seq an qual that should be split together and transfered
-#together.
+
 
 def _check_streams(streams, expected_streams):
     'It checks that streams meet the requirements set by the expected streams'

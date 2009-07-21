@@ -1,7 +1,61 @@
 '''
-Created on 13/07/2009
+What's a stream
 
-@author: jose
+A command takes some input streams and creates some output streams
+An stream is a file-like object.
+
+Kinds of streams in a cmd
+cmd arg1 arg2 -i opt1 -j opt3 arg3 < stdin > stdout stderr retcode
+in this general command there are several types of streams:
+   - previous arguments. arguments (without options) located before the first
+   option (like arg1 and arg2)
+   - options with one option, like opt3
+   - arguments (aka post_arguments). arguments located after the last option
+   - stdin, stdout, stderr and retcode. The standard ones.
+
+How to define the streams
+To create the streams list we need the cmd and the cmd_def. The stream list
+will be created using the cmd_def as a starting point and adding some extra
+information based in the cmd given.
+The cmd_def is defined by a dict with the following keys: options, io, splitter,
+fhand, fname, special, location. All of them are optional except the options.
+
+Options: It defines in which options or arguments is the stream found. It
+should by just a value or a tuple.
+Options kinds:
+       - -i             the stream will be located after the parameter -i
+       - (-o, --output) the stream will be after -o or --output
+       - int            where in the cmd is the stream (useful for pre-args and
+                        post-args)
+       - STDIN
+       - STDOUT
+       - STDERR
+
+io: It defines if it's an input or an output stream for the cmd
+
+splitter: It defines how the stream should be split. There are three ways of
+definint it:
+       - an str    that will be used to scan through the in streams, every
+                   line with the str in in will be considered a token start
+                   e.g '>' for the blast files
+       - a re      every line with a match will be considered a token start
+       - a function    the function should take the stream an return an
+                       iterator with the tokens
+
+joiner: A function that should take the out streams for all jobs and return
+the joined stream. If not given the output stream will be just concatenated.
+
+fhand or fpath: the stream file. This information is not part of the cmd_def.
+It will be added to the streams looking at the cmd
+
+special: It defines some special treatments for the streams.
+   - no_split      It shouldn't be split
+   - no_transfer   It shouldn't be transfer to all nodes
+   - no_support    An error should be raised if used.
+
+cmd_location: Where in the cmd is the file that corresponds to this stream
+is located. This information shouldn't be in the cmd_def it will be added to the
+streams using the cmd and the cmd_def.
 '''
 
 # Copyright 2009 Jose Blanca, Peio Ziarsolo, COMAV-Univ. Politecnica Valencia

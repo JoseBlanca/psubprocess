@@ -2,9 +2,26 @@
 
 It divides jobs into subjobs and launches the subjobs.
 
-Created on 16/07/2009
+This module is useful when we have a non-parallel command to run in a
+multiprocessor computer or in a multinode cluster. It will take the input files,
+it will split them and it will run a subjob for everyone of the splits. It will
+wait for the subjobs to finnish and it will join the output files generated
+by all subjobs. At the end of the process will get the same output files as if
+the command wasn't run in parallel.
 
-@author: jose
+To do it requires the parameters used by popen: cmd, stdin, stdout, stderr and
+some extra information: runner, splits and cmd_def.
+
+runner is optional and it should be a subprocess.Popen like class. If it's not
+given subprocess.Popen will be used. This will be the class used to run the
+subjobs. In that case the subjobs will run in the processors of the local node.
+
+splits is the number of subjobs that we want to generate. If it's not given the
+runner will provide a suitable number.
+
+cmd_def is a dict that defines how the cmd defines the input and output files.
+We need to tell Popen which are the input and output files in order to split
+them and join them.
 '''
 
 # Copyright 2009 Jose Blanca, Peio Ziarsolo, COMAV-Univ. Politecnica Valencia
@@ -65,189 +82,37 @@ def NamedTemporaryFile(dir=None, delete=False, suffix=''):
     fpath = tempfile.mkstemp(dir=dir, suffix=suffix)[1]
     return open(fpath, 'w')
 
-def _calculate_divisions(num_items, splits):
-    '''It calculates how many items should be in every split to divide
-    the num_items into splits.
-    Not all splits will have an equal number of items, it will return a tuple
-    with two tuples inside:
-    ((num_fragments_1, num_items_1), (num_fragments_2, num_items_2))
-    splits = num_fragments_1 + num_fragments_2
-    num_items_1 = num_items_2 + 1
-    num_fragments_1 could be equal to 0.
-    This is the best way to create as many splits as possible as similar as
-    possible.
-    '''
-    if splits >= num_items:
-        return ((0, 1), (splits, 1))
-    num_fragments1 = num_items % splits
-    num_fragments2 = splits - num_fragments1
-    num_items2 = num_items // splits
-    num_items1 = num_items2 + 1
-    res = ((num_fragments1, num_items1), (num_fragments2, num_items2))
-    return res
-
-def _items_in_file(fhand, expression_kind, expression):
-    '''Given an fhand and an expression it yields the items cutting where the
-    line matches the expression'''
-    sofar = fhand.readline()
-    for line in fhand:
-        if ((expression_kind == 'str' and expression in line) or
-            (expression_kind != 'str' and expression.search(line))):
-            yield sofar
-            sofar = line
-        else:
-            sofar += line
-    else:
-        #the last item
-        yield sofar
-
-def _create_file_splitter_with_re(expression):
-    '''Given an expression it creates a file splitter.
-
-    The expression can be a regex or an str.
-    The item in the file will be defined everytime a line matches the
-    expression.
-    '''
-    expression_kind = None
-    if isinstance(expression, str):
-        expression_kind = 'str'
-    else:
-        expression_kind = 're'
-    def splitter(file_, work_dirs):
-        '''It splits the given file into several splits.
-
-        Every split will be located in one of the work_dirs, although it is not
-        guaranteed to create as many splits as work dirs. If in the file there
-        are less items than work_dirs some work_dirs will be left empty.
-        It returns a list with the fpaths or fhands for the splitted files.
-        file_ can be an fhand or an fname.
-        '''
-        #the file_ can be an fname or an fhand. which one is it?
-        file_is_str = None
-        if isinstance(file_, str):
-            fname = file_
-            file_is_str = True
-        else:
-            fname = file_.name
-            file_is_str = False
-
-        #how many splits do we want?
-        nsplits = len(work_dirs)
-        #how many items are in the file? We assume that all files have the same
-        #number of items
-        nitems = 0
-        for line in open(fname, 'r'):
-            if ((expression_kind == 'str' and expression in line) or
-                (expression_kind != 'str' and expression.search(line))):
-                nitems += 1
-
-        #how many splits a we going to create? and how many items will be in
-        #every split
-        #if there are more items than splits we create as many splits as items
-        if nsplits > nitems:
-            nsplits = nitems
-        (nsplits1, nitems1), (nsplits2, nitems2) = _calculate_divisions(nitems,
-                                                                       nsplits)
-        #we have to create nsplits1 files with nitems1 in it and nsplits2 files
-        #with nitems2 items in it
-        new_files  = []
-        fhand = open(fname, 'r')
-        items = _items_in_file(fhand, expression_kind, expression)
-        splits_made = 0
-        for nsplits, nitems in ((nsplits1, nitems1), (nsplits2, nitems2)):
-            #we have to create nsplits files with nitems in it
-            #we don't need the split_index for anything
-            #pylint: disable-msg=W0612
-            for split_index in range(nsplits):
-                suffix = os.path.splitext(fname)[-1]
-                work_dir = work_dirs[splits_made]
-                ofh = NamedTemporaryFile(dir=work_dir.name, delete=False,
-                                         suffix=suffix)
-                for item_index in range(nitems):
-                    ofh.write(items.next())
-                ofh.flush()
-                if file_is_str:
-                    new_files.append(ofh.name)
-                    ofh.close()
-                else:
-                    new_files.append(ofh)
-                splits_made += 1
-        return new_files
-    return splitter
-
-def _output_splitter(file_, work_dirs):
-    '''It creates one output file for every splits.
-
-    Every split will be located in one of the work_dirs.
-    It returns a list with the fpaths for the new output files.
-    '''
-    #the file_ can be an fname or an fhand. which one is it?
-    file_is_str = None
-    if isinstance(file_, str):
-        fname = file_
-        file_is_str = True
-    else:
-        fname = file_.name
-        file_is_str = False
-    #how many splits do we want?
-    nsplits = len(work_dirs)
-
-    new_fpaths  = []
-    #we have to create nsplits
-    for split_index in range(nsplits):
-        suffix = os.path.splitext(fname)[-1]
-        work_dir = work_dirs[split_index]
-        #we use delete=False because this temp file is in a temp dir that will
-        #be completely deleted. If we use delete=True we get an error because
-        #the file might be already deleted when its __del__ method is called
-        ofh = NamedTemporaryFile(dir=work_dir.name, suffix=suffix,
-                                          delete=False)
-        #the file will be deleted
-        #what do we need the fname or the fhand?
-        if file_is_str:
-            #it will be deleted because we just need the name in the temporary
-            #directory. tempfile.mktemp would be better for this use, but it is
-            #deprecated
-            new_fpaths.append(ofh.name)
-            ofh.close()
-        else:
-            new_fpaths.append(ofh)
-    return new_fpaths
-
-def default_cat_joiner(out_file_, in_files_):
-    '''It joins the given in files into the given out file.
-
-    It works with fnames or fhands.
-    '''
-    #are we working with fhands or fnames?
-    file_is_str = None
-    if isinstance(out_file_, str):
-        file_is_str = True
-    else:
-        file_is_str = False
-
-    #the output fhand
-    if file_is_str:
-        out_fhand = open(out_file_, 'w')
-    else:
-        out_fhand = open(out_file_.name, 'w')
-    for in_file_ in in_files_:
-        #the input fhand
-        if file_is_str:
-            in_fhand = open(in_file_, 'r')
-        else:
-            in_fhand = open(in_file_.name, 'r')
-        for line in in_fhand:
-            out_fhand.write(line)
-        in_fhand.close()
-    out_fhand.close()
-
 class Popen(object):
-    'It paralellizes the given processes divinding them into subprocesses.'
+    '''It paralellizes the given processes dividing them into subprocesses.
+
+    The interface is similar to subprocess.Popen to ease the use of this class,
+    although the functionality of this class is much mor limited.
+    When an instance of this class is created a series of subjobs is launched.
+    When all subjobs are finished returncode will have an int, if they're still
+    running returncode will be None.
+    We can wait for all subjobs to finnish using the wait method or we can
+    kill or terminate them using kill and terminate.
+    '''
     def __init__(self, cmd, cmd_def=None, runner=None, runner_conf=None,
                  stdout=None, stderr=None, stdin=None, splits=None):
-        '''
-        Constructor
+        '''It inits the a Popen instance, it creates and runs the subjobs.
+
+        Like the subprocess.Popen it accepts stdin, stdout, stderr, but in this
+        case all of them should be files, PIPE will not work.
+
+        In the cmd_def list we have to tell this Popen how to locate the
+        input and output files in the cmd and how to split and join them. Look
+        for the cmd_format in the streams.py file.
+
+        keyword arguments:
+        cmd -- a list with the cmd to parallelize
+        cmd_def -- the cmd definition list (default [])
+        runner -- which runner to use  (default subprocess.Popen)
+        runner_conf -- extra parameters for the runner (default {})
+        stdout -- a fhand to store the stdout (default None)
+        stderr -- a fhand to store the stderr (default None)
+        stdin -- a fhand with the stdin (default None)
+        splits -- number of subjobs to generate
         '''
         #we want the same interface as subprocess.popen
         #pylint: disable-msg=R0913
@@ -588,3 +453,179 @@ class Popen(object):
             popen.terminate()
         del self._jobs['popens']
 
+def _calculate_divisions(num_items, splits):
+    '''It calculates how many items should be in every split to divide
+    the num_items into splits.
+    Not all splits will have an equal number of items, it will return a tuple
+    with two tuples inside:
+    ((num_fragments_1, num_items_1), (num_fragments_2, num_items_2))
+    splits = num_fragments_1 + num_fragments_2
+    num_items_1 = num_items_2 + 1
+    num_fragments_1 could be equal to 0.
+    This is the best way to create as many splits as possible as similar as
+    possible.
+    '''
+    if splits >= num_items:
+        return ((0, 1), (splits, 1))
+    num_fragments1 = num_items % splits
+    num_fragments2 = splits - num_fragments1
+    num_items2 = num_items // splits
+    num_items1 = num_items2 + 1
+    res = ((num_fragments1, num_items1), (num_fragments2, num_items2))
+    return res
+
+def _items_in_file(fhand, expression_kind, expression):
+    '''Given an fhand and an expression it yields the items cutting where the
+    line matches the expression'''
+    sofar = fhand.readline()
+    for line in fhand:
+        if ((expression_kind == 'str' and expression in line) or
+            (expression_kind != 'str' and expression.search(line))):
+            yield sofar
+            sofar = line
+        else:
+            sofar += line
+    else:
+        #the last item
+        yield sofar
+
+def _create_file_splitter_with_re(expression):
+    '''Given an expression it creates a file splitter.
+
+    The expression can be a regex or an str.
+    The item in the file will be defined everytime a line matches the
+    expression.
+    '''
+    expression_kind = None
+    if isinstance(expression, str):
+        expression_kind = 'str'
+    else:
+        expression_kind = 're'
+    def splitter(file_, work_dirs):
+        '''It splits the given file into several splits.
+
+        Every split will be located in one of the work_dirs, although it is not
+        guaranteed to create as many splits as work dirs. If in the file there
+        are less items than work_dirs some work_dirs will be left empty.
+        It returns a list with the fpaths or fhands for the splitted files.
+        file_ can be an fhand or an fname.
+        '''
+        #the file_ can be an fname or an fhand. which one is it?
+        file_is_str = None
+        if isinstance(file_, str):
+            fname = file_
+            file_is_str = True
+        else:
+            fname = file_.name
+            file_is_str = False
+
+        #how many splits do we want?
+        nsplits = len(work_dirs)
+        #how many items are in the file? We assume that all files have the same
+        #number of items
+        nitems = 0
+        for line in open(fname, 'r'):
+            if ((expression_kind == 'str' and expression in line) or
+                (expression_kind != 'str' and expression.search(line))):
+                nitems += 1
+
+        #how many splits a we going to create? and how many items will be in
+        #every split
+        #if there are more items than splits we create as many splits as items
+        if nsplits > nitems:
+            nsplits = nitems
+        (nsplits1, nitems1), (nsplits2, nitems2) = _calculate_divisions(nitems,
+                                                                       nsplits)
+        #we have to create nsplits1 files with nitems1 in it and nsplits2 files
+        #with nitems2 items in it
+        new_files  = []
+        fhand = open(fname, 'r')
+        items = _items_in_file(fhand, expression_kind, expression)
+        splits_made = 0
+        for nsplits, nitems in ((nsplits1, nitems1), (nsplits2, nitems2)):
+            #we have to create nsplits files with nitems in it
+            #we don't need the split_index for anything
+            #pylint: disable-msg=W0612
+            for split_index in range(nsplits):
+                suffix = os.path.splitext(fname)[-1]
+                work_dir = work_dirs[splits_made]
+                ofh = NamedTemporaryFile(dir=work_dir.name, delete=False,
+                                         suffix=suffix)
+                for item_index in range(nitems):
+                    ofh.write(items.next())
+                ofh.flush()
+                if file_is_str:
+                    new_files.append(ofh.name)
+                    ofh.close()
+                else:
+                    new_files.append(ofh)
+                splits_made += 1
+        return new_files
+    return splitter
+
+def _output_splitter(file_, work_dirs):
+    '''It creates one output file for every splits.
+
+    Every split will be located in one of the work_dirs.
+    It returns a list with the fpaths for the new output files.
+    '''
+    #the file_ can be an fname or an fhand. which one is it?
+    file_is_str = None
+    if isinstance(file_, str):
+        fname = file_
+        file_is_str = True
+    else:
+        fname = file_.name
+        file_is_str = False
+    #how many splits do we want?
+    nsplits = len(work_dirs)
+
+    new_fpaths  = []
+    #we have to create nsplits
+    for split_index in range(nsplits):
+        suffix = os.path.splitext(fname)[-1]
+        work_dir = work_dirs[split_index]
+        #we use delete=False because this temp file is in a temp dir that will
+        #be completely deleted. If we use delete=True we get an error because
+        #the file might be already deleted when its __del__ method is called
+        ofh = NamedTemporaryFile(dir=work_dir.name, suffix=suffix,
+                                          delete=False)
+        #the file will be deleted
+        #what do we need the fname or the fhand?
+        if file_is_str:
+            #it will be deleted because we just need the name in the temporary
+            #directory. tempfile.mktemp would be better for this use, but it is
+            #deprecated
+            new_fpaths.append(ofh.name)
+            ofh.close()
+        else:
+            new_fpaths.append(ofh)
+    return new_fpaths
+
+def default_cat_joiner(out_file_, in_files_):
+    '''It joins the given in files into the given out file.
+
+    It works with fnames or fhands.
+    '''
+    #are we working with fhands or fnames?
+    file_is_str = None
+    if isinstance(out_file_, str):
+        file_is_str = True
+    else:
+        file_is_str = False
+
+    #the output fhand
+    if file_is_str:
+        out_fhand = open(out_file_, 'w')
+    else:
+        out_fhand = open(out_file_.name, 'w')
+    for in_file_ in in_files_:
+        #the input fhand
+        if file_is_str:
+            in_fhand = open(in_file_, 'r')
+        else:
+            in_fhand = open(in_file_.name, 'r')
+        for line in in_fhand:
+            out_fhand.write(line)
+        in_fhand.close()
+    out_fhand.close()
