@@ -161,6 +161,31 @@ class PRunnerTest(unittest.TestCase):
         in_file.close()
         os.remove(bin)
 
+    @staticmethod
+    def test_stdin_real_splitter():
+        'It test that stdin works as input'
+        bin = create_test_binary()
+
+        #with stdin
+        content = '>hola1\nhola2\n>hola3\nhola4\n>hola5\nhola6\n>hola7\nhola8\n'
+        content += '>hola9\nhola10|n'
+        stdin = NamedTemporaryFile()
+        stdin.write(content)
+        stdin.flush()
+
+        cmd = [bin]
+        cmd.extend(['-s'])
+        stdout = NamedTemporaryFile()
+        stderr = NamedTemporaryFile()
+        cmd_def = [{'options':STDIN, 'io': 'in', 'splitter':'>'}]
+        popen = Popen(cmd, stdout=stdout, stderr=stderr, stdin=stdin,
+                      cmd_def=cmd_def)
+        assert popen.wait() == 0 #waits till finishes and looks to the retcod
+        assert open(stdout.name).read() == content
+        assert open(stderr.name).read() == ''
+        os.remove(bin)
+
+
 if __name__ == "__main__":
     #import sys;sys.argv = ['', 'Test.testName']
     unittest.main()

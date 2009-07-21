@@ -92,7 +92,7 @@ def _items_in_file(fhand, expression_kind, expression):
     sofar = fhand.readline()
     for line in fhand:
         if ((expression_kind == 'str' and expression in line) or
-             expression.search(line)):
+            (expression_kind != 'str' and expression.search(line))):
             yield sofar
             sofar = line
         else:
@@ -138,7 +138,7 @@ def _create_file_splitter_with_re(expression):
         nitems = 0
         for line in open(fname, 'r'):
             if ((expression_kind == 'str' and expression in line) or
-                 expression.search(line)):
+                (expression_kind != 'str' and expression.search(line))):
                 nitems += 1
 
         #how many splits a we going to create? and how many items will be in

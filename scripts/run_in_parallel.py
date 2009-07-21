@@ -54,7 +54,7 @@ def get_options():
     if cmd_options.command is None:
         raise parser.error('The command should be set')
     else:
-        options['cmd'] = cmd_options.command
+        options['cmd'] = cmd_options.command.split()
     if cmd_options.stdout is not None:
         options['stdout'] = open(cmd_options.stdout, 'w')
     if cmd_options.stderr is not None:
@@ -87,8 +87,8 @@ def kill_process():
 def set_signal_handlers():
     'It sets the SIGTERM and SIGKILL signals'
     signal.signal(signal.SIGTERM, kill_process)
-    signal.signal(signal.SIGKILL, kill_process)
-    signal.signal(signal.SIGINT, kill_process)
+    signal.signal(signal.SIGABRT, kill_process)
+    signal.signal(signal.SIGINT,  kill_process)
 
 def main():
     'It runs a command in parallel'
