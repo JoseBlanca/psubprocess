@@ -82,6 +82,11 @@ def NamedTemporaryFile(dir=None, delete=False, suffix=''):
     fpath = tempfile.mkstemp(dir=dir, suffix=suffix)[1]
     return open(fpath, 'w')
 
+def copy_file_mode(fpath1, fpath2):
+    'It copies the os.stats mode from file1 to file2'
+    mode = os.stat(fpath1)[0]
+    os.chmod(fpath2, mode)
+
 class Popen(object):
     '''It paralellizes the given processes dividing them into subprocesses.
 
@@ -132,6 +137,7 @@ class Popen(object):
 
         #we need a work dir to create the temporary split files
         self._work_dir = NamedTemporaryDir()
+        copy_file_mode('.', self._work_dir.name)
 
         #the main job
         self._job = {'cmd': cmd, 'work_dir': self._work_dir}
@@ -252,7 +258,9 @@ class Popen(object):
         #we create one work dir for every split
         work_dirs = []
         for index in range(splits):
-            work_dirs.append(NamedTemporaryDir(dir=work_dir))
+            dir_ = NamedTemporaryDir(dir=work_dir)
+            work_dirs.append(dir_)
+            copy_file_mode('.', dir_.name)
 
         #we have to do first the input files because the number of splits could
         #be changed by them
@@ -551,6 +559,7 @@ def _create_file_splitter_with_re(expression):
                 work_dir = work_dirs[splits_made]
                 ofh = NamedTemporaryFile(dir=work_dir.name, delete=False,
                                          suffix=suffix)
+                copy_file_mode(fhand.name, ofh.name)
                 for item_index in range(nitems):
                     ofh.write(items.next())
                 ofh.flush()
@@ -597,7 +606,6 @@ def _output_splitter(file_, work_dirs):
             #directory. tempfile.mktemp would be better for this use, but it is
             #deprecated
             new_fpaths.append(ofh.name)
-            ofh.close()
         else:
             new_fpaths.append(ofh)
     return new_fpaths
