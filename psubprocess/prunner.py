@@ -28,7 +28,7 @@ import os, tempfile, shutil, copy
 from psubprocess.streams import get_streams_from_cmd, STDOUT, STDERR, STDIN
 from psubprocess import condor_runner
 
-RUNNER_MODULES ={}
+RUNNER_MODULES = {}
 RUNNER_MODULES['condor_runner'] = condor_runner
 
 class NamedTemporaryDir(object):
@@ -244,8 +244,8 @@ def default_cat_joiner(out_file_, in_files_):
 
 class Popen(object):
     'It paralellizes the given processes divinding them into subprocesses.'
-    def __init__(self, cmd, cmd_def=None, runner=None, stdout=None, stderr=None,
-                 stdin=None, splits=None):
+    def __init__(self, cmd, cmd_def=None, runner=None, runner_conf=None,
+                 stdout=None, stderr=None, stdin=None, splits=None):
         '''
         Constructor
         '''
@@ -275,10 +275,10 @@ class Popen(object):
                                       stdout=stdout, stderr=stderr, stdin=stdin)
 
         #launch every subjobs
-        self._launch_jobs(self._jobs, runner=runner)
+        self._launch_jobs(self._jobs, runner=runner, runner_conf=runner_conf)
 
     @staticmethod
-    def _launch_jobs(jobs, runner):
+    def _launch_jobs(jobs, runner, runner_conf):
         'It launches all jobs and it adds its popen instance to them'
         jobs['popens'] = []
         cwd = os.getcwd()
@@ -302,7 +302,8 @@ class Popen(object):
                 popen = runner(cmd, stdout=stdout, stderr=stderr, stdin=stdin)
             else:
                 popen = runner(cmd, cmd_def=streams, stdout=stdout,
-                               stderr=stderr, stdin=stdin)
+                               stderr=stderr, stdin=stdin,
+                               runner_conf=runner_conf)
             #we record it's popen instane
             jobs['popens'].append(popen)
         os.chdir(cwd)
@@ -347,7 +348,10 @@ class Popen(object):
             new_cmd = copy.deepcopy(cmd)
             for stream in streams:
                 #is the stream in the cmd or in is a std one?
-                location = stream['cmd_location']
+                if 'cmd_location' in stream:
+                    location = stream['cmd_location']
+                else:
+                    location = None
                 if location is None:
                     continue
                 elif location == STDIN:
@@ -427,8 +431,10 @@ class Popen(object):
             #the stream can have fname or fhands
             if 'fhand' in stream:
                 file_ = stream['fhand']
-            else:
+            elif 'fname' in stream:
                 file_ = stream['fname']
+            else:
+                file_ = None
             if file_ is None:
                 #the stream migth have no file associated
                 files = [None] * len(work_dirs)

@@ -164,7 +164,8 @@ class Popen(object):
                                 stdout, stderr, stdin):
         'Given a cmd and the cmd_def it returns the condor job file'
         #streams
-        streams = get_streams_from_cmd(cmd, cmd_def)
+        streams = get_streams_from_cmd(cmd, cmd_def, stdout=stdout,
+                                       stderr=stderr, stdin=stdin)
         #we need some parameters to write the condor file
         parameters = {}
         parameters['executable'] = cmd[0]

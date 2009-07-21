@@ -138,7 +138,8 @@ class PRunnerTest(unittest.TestCase):
                    {'options': ('-t', '--output'), 'io': 'out'}]
         from psubprocess import CondorPopen
         popen = Popen(cmd, stdout=stdout, stderr=stderr, cmd_def=cmd_def,
-                      runner=CondorPopen)
+                      runner=CondorPopen,
+                      runner_conf={'transfer_executable':True})
         assert popen.wait() == 0 #waits till finishes and looks to the retcod
         assert not open(stdout.name).read()
         assert not open(stderr.name).read()
@@ -146,6 +147,7 @@ class PRunnerTest(unittest.TestCase):
         in_file.close()
         os.remove(bin)
 
+    #TODO test retcode
 
 if __name__ == "__main__":
     #import sys;sys.argv = ['', 'Test.testName']

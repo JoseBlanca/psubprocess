@@ -132,17 +132,24 @@ class StreamsFromCmdTest(unittest.TestCase):
         'We want stdin, stdout and stderr as streams'
         #stdin
         cmd = ['hola']
-        cmd_def = [{'options':STDIN, 'io': 'in'}]
+        cmd_def = [{'options':STDIN, 'io': 'in'},
+                   {'options':STDOUT, 'io': 'out'}]
         stdout = 'stdout' #in the real world they will be files
         stderr = 'stderr'
         stdin  = 'stdin'
 
-        expected_streams = [{'fhand': stdin,  'io':'in', 'cmd_location':STDIN},
-                          {'fhand': stdout, 'io':'out', 'cmd_location':STDOUT},
-                          {'fhand': stderr, 'io':'out', 'cmd_location':STDERR}]
+        expected_streams = [{'fhand': stdin,  'io':'in', 'cmd_location':STDIN,
+                             'options': stdin},
+                          {'fhand': stdout, 'io':'out', 'cmd_location':STDOUT,
+                           'options':stdout},
+                          {'fhand': stderr, 'io':'out', 'cmd_location':STDERR,
+                           'options':stderr}]
         streams = get_streams_from_cmd(cmd, cmd_def=cmd_def, stdout=stdout,
                                        stderr=stderr, stdin=stdin)
         _check_streams(streams, expected_streams)
+        assert 'fname' not in streams[0]
+        assert 'fname' not in streams[1]
+        assert 'fname' not in streams[2]
 
 
 if __name__ == "__main__":
