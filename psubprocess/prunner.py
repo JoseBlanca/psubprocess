@@ -571,3 +571,20 @@ class Popen(object):
             self._collect_retcodes()
         return self._retcode
     returncode = property(_get_returncode)
+
+    def kill(self):
+        'It kills all jobs'
+        if 'popens' not in self._jobs:
+            return
+        for popen in self._jobs['popens']:
+            popen.kill()
+        del self._jobs['popens']
+
+    def terminate(self):
+        'It kills all jobs'
+        if 'popens' not in self._jobs:
+            return
+        for popen in self._jobs['popens']:
+            popen.terminate()
+        del self._jobs['popens']
+
