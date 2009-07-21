@@ -7,7 +7,7 @@ Created on 25/03/2009
 from setuptools import setup
 setup(
     # basic package data
-    name = "subprocess",
+    name = "psubprocess",
     version = "0.0.1",
     author='Jose Blanca, Peio Ziarsolo',
     author_email='jblanca@btc.upv.es',
