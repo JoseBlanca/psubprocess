@@ -119,6 +119,20 @@ class PRunnerTest(unittest.TestCase):
         os.remove(bin)
 
     @staticmethod
+    def test_retcode():
+        'It tests that we get the correct returncode'
+        bin = create_test_binary()
+        cmd = [bin]
+        cmd.extend(['-r', '20'])
+        stdout = NamedTemporaryFile()
+        stderr = NamedTemporaryFile()
+        popen = Popen(cmd, stdout=stdout, stderr=stderr, cmd_def=[])
+        assert popen.wait() == 20 #waits till finishes and looks to the retcod
+        assert not open(stdout.name).read()
+        assert not open(stderr.name).read()
+        os.remove(bin)
+
+    @staticmethod
     def test_infile_outfile_condor():
         'It tests that we can set an input file and an output file'
         bin = create_test_binary()
@@ -146,8 +160,6 @@ class PRunnerTest(unittest.TestCase):
         assert open(out_file.name).read() == content
         in_file.close()
         os.remove(bin)
-
-    #TODO test retcode
 
 if __name__ == "__main__":
     #import sys;sys.argv = ['', 'Test.testName']
