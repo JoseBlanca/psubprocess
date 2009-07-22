@@ -65,8 +65,11 @@ def write_condor_job_file(fhand, parameters):
         fhand.write(to_print)
     to_print = 'Getenv = True\n'
     fhand.write(to_print)
-    to_print = 'Transfer_executable = %s\n' % parameters['transfer_executable']
-    fhand.write(to_print)
+    if ('transfer_executable' in parameters and
+        parameters['transfer_executable']):
+        to_print = 'Transfer_executable = %s\n' % \
+                                               parameters['transfer_executable']
+        fhand.write(to_print)
     if 'input_fnames' in parameters and parameters['input_fnames']:
         ins = ','.join(parameters['input_fnames'])
         to_print = 'Transfer_input_files = %s\n' % ins
@@ -168,7 +171,19 @@ class Popen(object):
                                        stderr=stderr, stdin=stdin)
         #we need some parameters to write the condor file
         parameters = {}
-        parameters['executable'] = cmd[0]
+        #the executable
+        binary = cmd[0]
+        #the binary should be an absolute path
+        if not os.path.isabs(binary):
+            #the path to the binary could be relative
+            if os.sep in binary:
+                #we make the path absolute
+                binary = os.path.abspath(binary)
+            else:
+                #we have to look in the system $PATH
+                binary = call(['which', binary])[0].strip()
+        parameters['executable'] = binary
+
         parameters['log_file'] = log_file
         #the cmd shouldn't have absolute path in the files because they will be
         #transfered to another node in the condor working dir and they wouldn't
@@ -185,7 +200,7 @@ class Popen(object):
         transfer_bin = False
         if 'transfer_executable' in runner_conf:
             transfer_bin = runner_conf['transfer_executable']
-        parameters['transfer_executable'] = str(transfer_bin)
+        parameters['transfer_executable'] = transfer_bin
 
         transfer_files = runner_conf['transfer_executable']
         parameters['transfer_files'] = str(transfer_files)

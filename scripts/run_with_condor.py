@@ -22,7 +22,7 @@ Created on 21/07/2009
 from optparse import OptionParser
 import os.path, sys, signal
 
-from psubprocess import CondorPopen, Popen
+from psubprocess import CondorPopen
 
 POPEN = None
 
@@ -56,7 +56,6 @@ def get_options():
         options['stderr'] = open(cmd_options.stderr, 'w')
     if cmd_options.stdin is not None:
         options['stdin'] = open(cmd_options.stdin)
-    options['runner'] = CondorPopen
     options['runner_conf'] = {'transfer_executable':False}
     if cmd_options.cmd_def is None:
         options['cmd_def'] = []
@@ -85,7 +84,7 @@ def main():
     set_signal_handlers()
     options = get_options()
     global POPEN
-    POPEN = Popen(**options)
+    POPEN = CondorPopen(**options)
     sys.exit(POPEN.wait())
 
 if __name__ == '__main__':

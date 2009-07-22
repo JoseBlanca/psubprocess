@@ -39,7 +39,7 @@ class CondorRunnerTest(unittest.TestCase):
         stderr_ = NamedTemporaryFile()
         stdout_ = NamedTemporaryFile()
         stdin_  = NamedTemporaryFile()
-        expected = '''Executable = bin
+        expected = '''Executable = /bin/ls
 Arguments = "-i %s -j %s"
 Universe = vanilla
 Log = %s
@@ -55,7 +55,7 @@ Queue
 ''' % (fhand1.name, fhand2.name, flog.name, fhand1.name, fhand2.name,
        stdout_.name, stderr_.name, stdin_.name)
         fhand = StringIO()
-        parameters = {'executable':'bin', 'log_file':flog,
+        parameters = {'executable':'/bin/ls', 'log_file':flog,
                       'input_fnames':[fhand1.name, fhand2.name],
                       'arguments':'-i %s -j %s' % (fhand1.name, fhand2.name),
                       'transfer_executable':True, 'transfer_files':True,

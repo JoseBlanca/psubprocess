@@ -126,7 +126,6 @@ def get_streams_from_cmd(cmd, cmd_def, stdout=None, stdin=None, stderr=None):
     #stdout and stderr might not be in the cmd_def
     _add_std_cmd_defs(cmd_def, stdout=stdout, stdin=stdin, stderr=stderr)
 
-
     streams = []
     for param_def in cmd_def:
         options = param_def['options']
