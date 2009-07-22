@@ -39,6 +39,8 @@ def parse_options():
                       help='A file to store the stdin')
     parser.add_option('-d', '--cmd_def', dest='cmd_def',
                       help='The command line definition')
+    parser.add_option('-l', '--condor_log', dest='condor_log',
+                      help='The condor log file')
     return parser
 
 def get_options():
@@ -65,6 +67,10 @@ def get_options():
         if os.path.exists(cmd_def):
             cmd_def = open(cmd_def).read()
         options['cmd_def'] = eval(cmd_def)
+
+    if cmd_options.condor_log is not None:
+        options['condor_log'] = open(cmd_options.condor_log, 'w')
+
     return options
 
 def kill_process():

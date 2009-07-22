@@ -94,7 +94,7 @@ def write_condor_job_file(fhand, parameters):
 class Popen(object):
     'It launches and controls a condor job'
     def __init__(self, cmd, cmd_def=None, runner_conf=None,
-                 stdout=None, stderr=None, stdin=None):
+                 stdout=None, stderr=None, stdin=None, condor_log=None):
         'It launches a condor job'
         if cmd_def is None:
             cmd_def = []
@@ -106,7 +106,10 @@ class Popen(object):
         if 'transfer_files' not in runner_conf:
             runner_conf['transfer_files'] = True
 
-        self._log_file = NamedTemporaryFile(suffix='.log')
+        if condor_log is None:
+            self._log_file = NamedTemporaryFile(suffix='.log')
+        else:
+            self._log_file = condor_log
         #create condor job file
         condor_job_file = self._create_condor_job_file(cmd, cmd_def,
                                                       self._log_file,
