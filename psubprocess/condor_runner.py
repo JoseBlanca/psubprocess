@@ -77,6 +77,9 @@ def write_condor_job_file(fhand, parameters):
         if parameters['transfer_files']:
             to_print = 'Should_transfer_files = IF_NEEDED\n'
             fhand.write(to_print)
+    if 'requirements' in parameters:
+        to_print = "requeriments = '%s'\n" % parameters['requirements']
+        fhand.write(to_print)
     if 'stdout' in parameters:
         to_print = 'Output = %s\n' % parameters['stdout'].name
         fhand.write(to_print)
@@ -94,7 +97,7 @@ def write_condor_job_file(fhand, parameters):
 class Popen(object):
     'It launches and controls a condor job'
     def __init__(self, cmd, cmd_def=None, runner_conf=None,
-                 stdout=None, stderr=None, stdin=None, condor_log=None):
+                 stdout=None, stderr=None, stdin=None):
         'It launches a condor job'
         if cmd_def is None:
             cmd_def = []
@@ -106,10 +109,10 @@ class Popen(object):
         if 'transfer_files' not in runner_conf:
             runner_conf['transfer_files'] = True
 
-        if condor_log is None:
+        if 'condor_log' not in runner_conf:
             self._log_file = NamedTemporaryFile(suffix='.log')
         else:
-            self._log_file = condor_log
+            self._log_file = runner_conf['condor_log']
         #create condor job file
         condor_job_file = self._create_condor_job_file(cmd, cmd_def,
                                                       self._log_file,
@@ -207,6 +210,9 @@ class Popen(object):
 
         transfer_files = runner_conf['transfer_executable']
         parameters['transfer_files'] = str(transfer_files)
+
+        if 'requirements' in runner_conf:
+            parameters['requirements'] = runner_conf['requirements']
 
         in_fnames = []
         for stream in streams:

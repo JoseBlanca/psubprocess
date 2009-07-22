@@ -43,7 +43,8 @@ def parse_options():
                       help='A file to store the stdin')
     parser.add_option('-d', '--cmd_def', dest='cmd_def',
                       help='The command line definition')
-
+    parser.add_option('-q', '--runner_req', dest='runner_req',
+                      help='runner requirements')
     return parser
 
 def get_options():
@@ -64,8 +65,12 @@ def get_options():
     if cmd_options.runner == 'subprocess':
         options['runner'] = None
     elif cmd_options.runner == 'condor':
+        runner_conf = {}
+        runner_conf['transfer_executable'] = False
+        if cmd_options.runner_req is not None:
+            runner_conf['requirements'] = cmd_options.runner_req
+        options['runner_conf'] = runner_conf
         options['runner'] = CondorPopen
-        options['runner_conf'] = {'transfer_executable':False}
     else:
         parser.error('Allowable runners are: subprocess and condor')
     if cmd_options.cmd_def is None:
@@ -76,6 +81,7 @@ def get_options():
         if os.path.exists(cmd_def):
             cmd_def = open(cmd_def).read()
         options['cmd_def'] = eval(cmd_def)
+
     return options
 
 def kill_process():

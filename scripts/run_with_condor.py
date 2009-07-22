@@ -39,8 +39,10 @@ def parse_options():
                       help='A file to store the stdin')
     parser.add_option('-d', '--cmd_def', dest='cmd_def',
                       help='The command line definition')
-    parser.add_option('-l', '--condor_log', dest='condor_log',
-                      help='The condor log file')
+    parser.add_option('-l', '--log', dest='condor_log',
+                      help='The log file')
+    parser.add_option('-q', '--condor_req', dest='runner_req',
+                      help='condor requiements for the job')
     return parser
 
 def get_options():
@@ -58,7 +60,6 @@ def get_options():
         options['stderr'] = open(cmd_options.stderr, 'w')
     if cmd_options.stdin is not None:
         options['stdin'] = open(cmd_options.stdin)
-    options['runner_conf'] = {'transfer_executable':False}
     if cmd_options.cmd_def is None:
         options['cmd_def'] = []
     else:
@@ -68,8 +69,12 @@ def get_options():
             cmd_def = open(cmd_def).read()
         options['cmd_def'] = eval(cmd_def)
 
+    runner_conf = {}
     if cmd_options.condor_log is not None:
-        options['condor_log'] = open(cmd_options.condor_log, 'w')
+        condor_log = open(cmd_options.condor_log, 'w')
+        runner_conf['condor_log'] = condor_log
+    runner_conf['transfer_executable'] = False
+    options['runner_conf'] = runner_conf
 
     return options
 
