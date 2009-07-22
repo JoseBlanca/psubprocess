@@ -80,11 +80,15 @@ def get_options():
         #it can be a file or an str
         if os.path.exists(cmd_def):
             cmd_def = open(cmd_def).read()
-        options['cmd_def'] = eval(cmd_def)
+        cmd_def = eval(cmd_def)
+        if not isinstance(cmd_def, list):
+            msg = 'cmd_def should be a list of dicts, read the documentation'
+            parser.error(msg)
+        options['cmd_def'] = cmd_def
 
     return options
 
-def kill_process():
+def kill_processes():
     'It kills the ongoing process'
     if POPEN is not None:
         POPEN.kill()
@@ -92,9 +96,9 @@ def kill_process():
 
 def set_signal_handlers():
     'It sets the SIGTERM and SIGKILL signals'
-    signal.signal(signal.SIGTERM, kill_process)
-    signal.signal(signal.SIGABRT, kill_process)
-    signal.signal(signal.SIGINT,  kill_process)
+    signal.signal(signal.SIGTERM, kill_processes)
+    signal.signal(signal.SIGABRT, kill_processes)
+    signal.signal(signal.SIGINT,  kill_processes)
 
 def main():
     'It runs a command in parallel'

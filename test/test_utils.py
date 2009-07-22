@@ -31,12 +31,14 @@ args = sys.argv
 #-e something   send something to stderr
 #-i some_file   send the file content to sdout
 #-t some_file   copy the -i file to -t file
+#-x some_file
+#-z some_file   copy the -x file to -z file
 #-s and stdin   write stdin to stout
 #-r a number    return this retcode
 
 #are the commands in the argv?
 arg_indexes = {}
-for param in ('-o', '-e', '-i', '-t', '-s', '-r'):
+for param in ('-o', '-e', '-i', '-t', '-s', '-r', '-x', '-z'):
     try:
         arg_indexes[param] = args.index(param)
     except ValueError:
@@ -52,6 +54,9 @@ if arg_indexes['-i'] and not arg_indexes['-t']:
     sys.stdout.write(open(args[arg_indexes['-i'] + 1]).read())
 elif arg_indexes['-i'] and arg_indexes['-t']:
     shutil.copy(args[arg_indexes['-i'] + 1], args[arg_indexes['-t'] + 1])
+
+if arg_indexes['-x'] and arg_indexes['-z']:
+    shutil.copy(args[arg_indexes['-x'] + 1], args[arg_indexes['-z'] + 1])
 #stdin
 if arg_indexes['-s']:
     stdin = sys.stdin.read()

@@ -267,22 +267,26 @@ class Popen(object):
         #we split the input stream files into several splits
         #we have to sort the input_stream_indexes, first we should take the ones
         #that have an input file to be split
+        def do_we_have_to_split(stream_index):
+            'If the stream has to split a file it will return True'
+            split = None
+            stream = streams[stream_index]
+            #maybe they shouldn't be split
+            if 'special' in stream and 'no_split' in stream['special']:
+                split = False
+            #maybe there is no file to split
+            if (('fhand' in stream and stream['fhand'] is None) or
+                ('fname' in stream and stream['fname'] is None) or
+                ('fname' not in stream and 'fhand' not in stream)):
+                split = False
+            elif (('fhand' in stream and stream['fhand'] is not None) or
+                  ('fname' in stream and stream['fname'] is not None)):
+                split = True
+            return split
         def to_be_split_first(stream1, stream2):
             'It sorts the streams, the ones to be split go first'
-            split1 = None
-            split2 = None
-            for split, stream in ((split1, stream1), (split2, stream2)):
-                #maybe they shouldn't be split
-                if 'special' in stream and 'no_split' in stream['special']:
-                    split = False
-                    #maybe the have no file to split
-                    if (('fhand' in stream and stream['fhand'] is None) or
-                        ('fname' in stream and stream['fname'] is None) or
-                        ('fname' not in stream and 'fhand' not in stream)):
-                        split = False
-                    elif (('fhand' in stream and stream['fhand'] is not None) or
-                          ('fname' in stream and stream['fname'] is not None)):
-                        split = True
+            split1 = do_we_have_to_split(stream1)
+            split2 = do_we_have_to_split(stream2)
             return int(split1) - int(split2)
         input_stream_indexes = sorted(input_stream_indexes, to_be_split_first)
 

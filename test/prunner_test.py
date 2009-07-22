@@ -185,6 +185,41 @@ class PRunnerTest(unittest.TestCase):
         assert open(stderr.name).read() == ''
         os.remove(bin)
 
+    @staticmethod
+    def test_2_infile_outfile():
+        'It tests that we can set 2 input files and an output file'
+        bin = create_test_binary()
+        #with infile
+        content = 'hola1\nhola2\nhola3\nhola4\nhola5\nhola6\nhola7\nhola8\n'
+        content += 'hola9\nhola10|n'
+        in_file1 = NamedTemporaryFile()
+        in_file1.write(content)
+        in_file1.flush()
+        in_file2 = NamedTemporaryFile()
+        in_file2.write(content)
+        in_file2.flush()
+        out_file1 = NamedTemporaryFile()
+        out_file2 = NamedTemporaryFile()
+
+        cmd = [bin]
+        cmd.extend(['-i', in_file1.name, '-t', out_file1.name])
+        cmd.extend(['-x', in_file2.name, '-z', out_file2.name])
+        stdout = NamedTemporaryFile()
+        stderr = NamedTemporaryFile()
+        cmd_def = [{'options': ('-i', '--input'), 'io': 'in', 'splitter':''},
+                   {'options': ('-x', '--input'), 'io': 'in', 'splitter':''},
+                   {'options': ('-t', '--output'), 'io': 'out'},
+                   {'options': ('-z', '--output'), 'io': 'out'}]
+        popen = Popen(cmd, stdout=stdout, stderr=stderr, cmd_def=cmd_def)
+        assert popen.wait() == 0 #waits till finishes and looks to the retcod
+        assert not open(stdout.name).read()
+        assert not open(stderr.name).read()
+        assert open(out_file1.name).read() == content
+        assert open(out_file2.name).read() == content
+        in_file1.close()
+        in_file2.close()
+        os.remove(bin)
+
 
 if __name__ == "__main__":
     #import sys;sys.argv = ['', 'Test.testName']

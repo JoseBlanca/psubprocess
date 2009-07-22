@@ -78,7 +78,7 @@ def write_condor_job_file(fhand, parameters):
             to_print = 'Should_transfer_files = IF_NEEDED\n'
             fhand.write(to_print)
     if 'requirements' in parameters:
-        to_print = "requeriments = '%s'\n" % parameters['requirements']
+        to_print = "Requirements = %s\n" % parameters['requirements']
         fhand.write(to_print)
     if 'stdout' in parameters:
         to_print = 'Output = %s\n' % parameters['stdout'].name
@@ -119,6 +119,7 @@ class Popen(object):
                                                       runner_conf,
                                                       stdout, stderr, stdin)
         self._condor_job_file = condor_job_file
+        #print open(condor_job_file.name).read()
 
         #launch condor
         self._retcode = None
@@ -127,7 +128,10 @@ class Popen(object):
 
     def _launch_condor(self, condor_job_file):
         'Given the condor_job_file it launches the condor job'
-        stdout, stderr, retcode = call(['condor_submit', condor_job_file.name])
+        try:
+            stdout, stderr, retcode = call(['condor_submit', condor_job_file.name])
+        except OSError:
+            raise OSError('condor_submit not found in your path')
         if retcode:
             msg = 'There was a problem with condor_submit: ' + stderr
             raise RuntimeError(msg)
@@ -254,7 +258,10 @@ class Popen(object):
 
     def wait(self):
         'It waits until the condor job is finished'
-        stderr, retcode = call(['condor_wait', self._log_file.name])[1:]
+        try:
+            stderr, retcode = call(['condor_wait', self._log_file.name])[1:]
+        except OSError:
+            raise OSError('condor_wait not found in your path')
         if retcode:
             msg = 'There was a problem with condor_wait: ' + stderr
             raise RuntimeError(msg)
@@ -262,7 +269,11 @@ class Popen(object):
 
     def kill(self):
         'It runs condor_rm for the condor job'
-        stderr, retcode = call(['condor_rm', self.pid])[1:]
+        try:
+            stderr, retcode = call(['condor_rm', self.pid])[1:]
+        except OSError:
+            raise OSError('condor_rm not found in your path')
+
         if retcode:
             msg = 'There was a problem with condor_rm: ' + stderr
             raise RuntimeError(msg)
@@ -274,7 +285,10 @@ class Popen(object):
 
 def get_default_splits():
     'It returns a suggested number of splits for this Popen runner'
-    stdout, stderr, retcode = call(['condor_status', '-total'])
+    try:
+        stdout, stderr, retcode = call(['condor_status', '-total'])
+    except OSError:
+        raise OSError('condor_status not found in your path')
     if retcode:
         msg = 'There was a problem with condor_status: ' + stderr
         raise RuntimeError(msg)
