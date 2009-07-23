@@ -1,7 +1,12 @@
-'''
-Created on 21/07/2009
+'''This script allows the easy parallelization of command line utilities.
 
-@author: jose
+If you have command that process a file with a set of items it would be
+quite easy to run it in a parallel environment using this command. The file
+will be divided in equally sized subjobs, these subjobs will be run in parallel
+and once completed the output files will be generated as if the original
+would have run.
+The subjobs can be run in one node with several processors or in a cluter with
+several nodes using condor.
 '''
 
 # Copyright 2009 Jose Blanca, Peio Ziarsolo, COMAV-Univ. Politecnica Valencia

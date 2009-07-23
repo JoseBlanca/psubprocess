@@ -9,19 +9,25 @@ wait for the subjobs to finnish and it will join the output files generated
 by all subjobs. At the end of the process will get the same output files as if
 the command wasn't run in parallel.
 
+This approach will work with commands that process a lot of items. This module
+divides the items in sereval set and it assigns each of this sets to one new
+subjob. These are the subjobs that will be run in parallel.
+
 To do it requires the parameters used by popen: cmd, stdin, stdout, stderr and
 some extra information: runner, splits and cmd_def.
 
 runner is optional and it should be a subprocess.Popen like class. If it's not
-given subprocess.Popen will be used. This will be the class used to run the
-subjobs. In that case the subjobs will run in the processors of the local node.
+given subprocess.Popen will be used. This Popen be the class used to run the
+subjobs. If subprocess.Popen is used the subjobs will run in the processors of
+the local node on several independent processes. If the Condor Popen is used
+the subjobs will run in a condor cluster.
 
 splits is the number of subjobs that we want to generate. If it's not given the
 runner will provide a suitable number.
 
 cmd_def is a dict that defines how the cmd defines the input and output files.
 We need to tell Popen which are the input and output files in order to split
-them and join them.
+them and join them. The syntax for cmd_def is explained in the stream.py module
 '''
 
 # Copyright 2009 Jose Blanca, Peio Ziarsolo, COMAV-Univ. Politecnica Valencia

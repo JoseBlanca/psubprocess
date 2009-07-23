@@ -1,7 +1,6 @@
-'''
-Created on 21/07/2009
+'''This script eases the running of a job in a condor environment.
 
-@author: jose
+The condor job file will be created for you.
 '''
 
 # Copyright 2009 Jose Blanca, Peio Ziarsolo, COMAV-Univ. Politecnica Valencia
