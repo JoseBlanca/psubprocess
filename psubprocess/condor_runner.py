@@ -1,8 +1,22 @@
-'''It launches processes using Condor with an interface similar to Popen
+'''The main aim of this module is to provide an easy way to launch condor jobs.
+
+Condor is a specialized workload management system for compute-intensive jobs.
+Like other full-featured batch systems, Condor provides a job queueing
+mechanism, scheduling policy, priority scheme, resource monitoring, and
+resource management. More on condor on its web site:
+http://www.cs.wisc.edu/condor/
+
+The interface used is similar to the subprocess.Popen one.
+Besides the standard parameters like cmd, stdout, stderr, and stdin, this condor
+Popen takes a couple of extra paramteres cmd_def and runner_conf. The cmd_def
+syntax is explained in the streams.py file. Condor Popen needs the cmd_def to
+be able to get from the cmd which are the input and output files. The input
+files should be specified in the condor job file, in the case that we want
+to transfer them to the computing nodes. Besides the input and output files
+in the cmd should have no paths, otherwise the command would fail in the other
+machines. That's why we need cmd_def.
 
 Created on 14/07/2009
-
-@author: jose
 '''
 
 # Copyright 2009 Jose Blanca, Peio Ziarsolo, COMAV-Univ. Politecnica Valencia
@@ -95,10 +109,37 @@ def write_condor_job_file(fhand, parameters):
     fhand.flush()
 
 class Popen(object):
-    'It launches and controls a condor job'
-    def __init__(self, cmd, cmd_def=None, runner_conf=None,
-                 stdout=None, stderr=None, stdin=None):
-        'It launches a condor job'
+    '''It launches and controls a condor job.
+
+    The job is launched when an instance is created. After that we can get the
+    cluster id with the method.pid. The rest of the interface is very similar
+    to the subprocess.Popen one. There's no communicate method because there's
+    no support for PIPE.
+    '''
+    def __init__(self, cmd, cmd_def=None, runner_conf=None, stdout=None,
+                 stderr=None, stdin=None):
+        '''It launches a condor job.
+
+        The interface is similar to the subprocess.Popen one, although there are
+        some differences.
+        stdout, stdin and stderr should be file handlers, there's no support for
+        PIPEs. The extra parameter cmd_def is required if we need to transfer
+        the input and output files to the computing nodes of the cluster using
+        the condor file transfer mechanism. The cmd_def syntax is explained in
+        the streams.py file.
+        runner_conf is a dict that admits several parameters that control how
+        condor is run:
+            - transfer_files: do we want to transfer the files using the condor
+                              transfer file mechanism? (default True)
+            - condor_log: the condor log file. If it's not given Popen will
+                          create a condor log file in the tempdir.
+            - transfer_executable: do we want to transfer the executable?
+                                   (default False)
+            - requirements: The requirements line for the condor job file.
+                            (default None)
+        '''
+        #we use the same parameters as subprocess.Popen
+        #pylint: disable-msg=R0913
         if cmd_def is None:
             cmd_def = []
 
