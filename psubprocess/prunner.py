@@ -49,6 +49,7 @@ from subprocess import Popen as StdPopen
 import os, tempfile, shutil, copy
 
 from psubprocess.streams import get_streams_from_cmd, STDOUT, STDERR, STDIN
+from psubprocess.condor_runner import call
 from psubprocess import condor_runner
 
 RUNNER_MODULES = {}
@@ -460,16 +461,24 @@ class Popen(object):
         if 'popens' not in self._jobs:
             return
         for popen in self._jobs['popens']:
-            popen.kill()
-        del self._jobs['popens']
+            #untill 2.6 subprocess.popen do not support kill
+            if 'kill' in dir(popen):
+                popen.kill()
+            else:
+                pid = popen.pid
+                call(['kill', '-9', str(pid)])
 
     def terminate(self):
         'It kills all jobs'
         if 'popens' not in self._jobs:
             return
         for popen in self._jobs['popens']:
-            popen.terminate()
-        del self._jobs['popens']
+            #untill 2.6 subprocess.popen do not support terminate
+            if 'terminate' in dir(popen):
+                popen.terminate()
+            else:
+                pid = popen.pid
+                call(['kill', '-6', str(pid)])
 
 def _calculate_divisions(num_items, splits):
     '''It calculates how many items should be in every split to divide

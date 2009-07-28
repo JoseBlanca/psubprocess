@@ -25,7 +25,7 @@ from StringIO import StringIO
 import os
 
 from psubprocess.condor_runner import (write_condor_job_file, Popen,
-                                       get_default_splits)
+                                       get_default_splits, call)
 from test_utils import create_test_binary
 
 class CondorRunnerTest(unittest.TestCase):
@@ -175,6 +175,20 @@ Queue
         'It tests that we can get a suggested number of splits'
         assert get_default_splits() > 0
         assert isinstance(get_default_splits(), int)
+
+    @staticmethod
+    def test_run_condor_kill():
+        'It test that we can kill a condor job'
+        bin = create_test_binary()
+        #a simple job
+        cmd = [bin]
+        cmd.extend(['-w'])
+        popen = Popen(cmd, runner_conf={'transfer_executable':True})
+        pid = str(popen.pid)
+        popen.kill()
+        stdout = call(['condor_q', pid])[0]
+        assert pid not in stdout
+        os.remove(bin)
 
 if __name__ == "__main__":
     #import sys;sys.argv = ['', 'Test.testName']

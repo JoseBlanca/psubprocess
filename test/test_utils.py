@@ -23,7 +23,7 @@ from tempfile import NamedTemporaryFile
 import os, stat, shutil
 
 TEST_BINARY = '''#!/usr/bin/env python
-import sys, shutil, os
+import sys, shutil, os, time
 
 args = sys.argv
 
@@ -38,7 +38,7 @@ args = sys.argv
 
 #are the commands in the argv?
 arg_indexes = {}
-for param in ('-o', '-e', '-i', '-t', '-s', '-r', '-x', '-z'):
+for param in ('-o', '-e', '-i', '-t', '-s', '-r', '-x', '-z', '-w'):
     try:
         arg_indexes[param] = args.index(param)
     except ValueError:
@@ -66,6 +66,9 @@ if arg_indexes['-r']:
     retcode = int(args[arg_indexes['-r'] + 1])
 else:
     retcode = 0
+#wait
+if arg_indexes['-w']:
+    time.sleep(50)
 sys.exit(retcode)
 '''
 

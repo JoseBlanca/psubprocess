@@ -220,6 +220,20 @@ class PRunnerTest(unittest.TestCase):
         in_file2.close()
         os.remove(bin)
 
+    @staticmethod
+    def test_kill_subjobs():
+        'It tests that we can kill the subjobs'
+        bin = create_test_binary()
+        cmd = [bin]
+        cmd.extend(['-w'])
+        stdout = NamedTemporaryFile()
+        stderr = NamedTemporaryFile()
+        popen = Popen(cmd, stdout=stdout, stderr=stderr, cmd_def=[])
+        assert popen.returncode is None
+        popen.kill()
+        assert not open(stdout.name).read()
+        assert not open(stderr.name).read()
+        os.remove(bin)
 
 if __name__ == "__main__":
     #import sys;sys.argv = ['', 'Test.testName']
