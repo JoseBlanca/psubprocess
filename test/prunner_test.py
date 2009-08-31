@@ -235,6 +235,34 @@ class PRunnerTest(unittest.TestCase):
         assert not open(stderr.name).read()
         os.remove(bin)
 
+    @staticmethod
+    def test_nosplit():
+        'It test that we can set some input files to be not split'
+        bin = create_test_binary()
+        #with infile
+        in_file = NamedTemporaryFile()
+        content = 'hola1\nhola2\n'
+        in_file.write(content)
+        in_file.flush()
+        out_file = NamedTemporaryFile()
+
+        cmd = [bin]
+        cmd.extend(['-i', in_file.name, '-t', out_file.name])
+        stdout = NamedTemporaryFile()
+        stderr = NamedTemporaryFile()
+        cmd_def = [{'options': ('-i', '--input'), 'io': 'in',
+                    'special':['no_split']},
+                   {'options': ('-t', '--output'), 'io': 'out'}]
+        splits = 4
+        popen = Popen(cmd, stdout=stdout, stderr=stderr, cmd_def=cmd_def,
+                      splits=splits)
+        assert popen.wait() == 0 #waits till finishes and looks to the retcod
+        assert not open(stdout.name).read()
+        assert not open(stderr.name).read()
+        assert open(out_file.name).read() == content * splits
+        in_file.close()
+        os.remove(bin)
+
 if __name__ == "__main__":
     #import sys;sys.argv = ['', 'Test.testName']
     unittest.main()
