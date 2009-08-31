@@ -634,7 +634,8 @@ def _create_non_splitter_splitter(copy_files=False):
                                               delete=False)
             if copy_files:
                 os.remove(ofh.name)
-                os.symlink(fname, ofh.name)
+                #i've tried with os.symlink but condor does not like it
+                shutil.copyfile(fname, ofh.name)
             #the file will be deleted
             #what do we need the fname or the fhand?
             if file_is_str:
