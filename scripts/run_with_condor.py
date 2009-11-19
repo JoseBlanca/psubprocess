@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 '''This script eases the running of a job in a condor environment.
 
 The condor job file will be created for you.

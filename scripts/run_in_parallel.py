@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 '''This script allows the easy parallelization of command line utilities.
 
 If you have command that process a file with a set of items it would be
