@@ -39,7 +39,7 @@ import subprocess, signal, os.path
 
 from psubprocess.streams import get_streams_from_cmd
 
-def call(cmd, env=None, stdin=None):
+def call(cmd):
     'It calls a command and it returns stdout, stderr and retcode'
     def subprocess_setup():
         ''' Python installs a SIGPIPE handler by default. This is usually not
@@ -48,22 +48,22 @@ def call(cmd, env=None, stdin=None):
         2009-07-02-python-sigpipe'''
         signal.signal(signal.SIGPIPE, signal.SIG_DFL)
 
-    if stdin is None:
-        pstdin = None
-    else:
-        pstdin = subprocess.PIPE
-
+#    if stdin is None:
+#        pstdin = None
+#    else:
+#        pstdin = subprocess.PIPE
     process = subprocess.Popen(cmd, stdout=subprocess.PIPE,
-                               stderr=subprocess.PIPE, env=env, stdin=pstdin,
+                               stderr=subprocess.PIPE,
                                preexec_fn=subprocess_setup)
-    if stdin is None:
-        stdout, stderr = process.communicate()
-    else:
+#    if stdin is None:
+#        stdout, stderr = process.communicate()
+#    else:
 #        a = stdin.read()
 #        print a
 #        stdout, stderr = subprocess.Popen.stdin = stdin
 #        print stdin.read()
-        stdout, stderr = process.communicate(stdin)
+#        stdout, stderr = process.communicate(stdin)
+    stdout, stderr = process.communicate()
     retcode = process.returncode
     return stdout, stderr, retcode
 
@@ -170,9 +170,10 @@ class Popen(object):
     def _launch_condor(self, condor_job_file):
         'Given the condor_job_file it launches the condor job'
         try:
-            stdout, stderr, retcode = call(['condor_submit', condor_job_file.name])
-        except OSError:
-            raise OSError('condor_submit not found in your path')
+            stdout, stderr, retcode = call(['condor_submit',
+                                            condor_job_file.name])
+        except OSError, msg:
+            raise OSError('condor_submit not found in your path.' + str(msg))
         if retcode:
             msg = 'There was a problem with condor_submit: ' + stderr
             raise RuntimeError(msg)
