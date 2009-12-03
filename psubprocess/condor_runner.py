@@ -71,41 +71,40 @@ def write_condor_job_file(fhand, parameters):
     'It writes a condor job file using the given fhand'
     to_print = 'Executable = %s\nArguments = "%s"\nUniverse = vanilla\n' % \
                (parameters['executable'], parameters['arguments'])
-    fhand.write(to_print)
-    to_print = 'Log = %s\n' %  parameters['log_file'].name
-    fhand.write(to_print)
+
+    to_print += 'Log = %s\n' %  parameters['log_file'].name
+
     if parameters['transfer_files']:
-        to_print = 'When_to_transfer_output = ON_EXIT\n'
-        fhand.write(to_print)
-    to_print = 'Getenv = True\n'
-    fhand.write(to_print)
+        to_print += 'When_to_transfer_output = ON_EXIT\n'
+
+    to_print += 'Getenv = True\n'
+
     if ('transfer_executable' in parameters and
         parameters['transfer_executable']):
-        to_print = 'Transfer_executable = %s\n' % \
+        to_print += 'Transfer_executable = %s\n' % \
                                                parameters['transfer_executable']
-        fhand.write(to_print)
+
     if 'input_fnames' in parameters and parameters['input_fnames']:
         ins = ','.join(parameters['input_fnames'])
-        to_print = 'Transfer_input_files = %s\n' % ins
-        fhand.write(to_print)
-        if parameters['transfer_files']:
-            to_print = 'Should_transfer_files = IF_NEEDED\n'
-            fhand.write(to_print)
-    if 'requirements' in parameters:
-        to_print = "Requirements = %s\n" % parameters['requirements']
-        fhand.write(to_print)
-    if 'stdout' in parameters:
-        to_print = 'Output = %s\n' % parameters['stdout'].name
-        fhand.write(to_print)
-    if 'stderr' in parameters:
-        to_print = 'Error = %s\n' % parameters['stderr'].name
-        fhand.write(to_print)
-    if 'stdin' in parameters:
-        to_print = 'Input = %s\n' % parameters['stdin'].name
-        fhand.write(to_print)
-    to_print = 'Queue\n'
-    fhand.write(to_print)
+        to_print += 'Transfer_input_files = %s\n' % ins
 
+        if parameters['transfer_files']:
+            to_print += 'Should_transfer_files = IF_NEEDED\n'
+
+    if 'requirements' in parameters:
+        to_print += "Requirements = %s\n" % parameters['requirements']
+
+    if 'stdout' in parameters:
+        to_print += 'Output = %s\n' % parameters['stdout'].name
+
+    if 'stderr' in parameters:
+        to_print += 'Error = %s\n' % parameters['stderr'].name
+
+    if 'stdin' in parameters:
+        to_print += 'Input = %s\n' % parameters['stdin'].name
+
+    to_print += 'Queue\n'
+    fhand.write(to_print)
     fhand.flush()
 
 class Popen(object):
