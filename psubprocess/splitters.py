@@ -149,11 +149,11 @@ def _create_file_splitter(kind, expression=None):
                 ofh.flush()
                 #we have to close the files otherwise we can run out of files
                 #in the os filesystem
-                ofh.close()
                 if file_is_str:
                     new_files.append(ofh.name)
                 else:
                     new_files.append(ofh)
+                ofh.close()
                 splits_made += 1
         return new_files
     return splitter
@@ -205,12 +205,13 @@ def create_non_splitter_splitter(copy_files=False):
             #is called
             ofh = NamedTemporaryFile(dir=work_dir.name, suffix=suffix,
                                               delete=False)
+            os.remove(ofh.name)
+            ofh_name = ofh.name
+            #we have to close the files otherwise we can run out of files
+            #in the os filesystem
+            ofh.close()
+
             if copy_files:
-                os.remove(ofh.name)
-                ofh_name = ofh.name
-                #we have to close the files otherwise we can run out of files
-                #in the os filesystem
-                ofh.close()
                 #i've tried with os.symlink but condor does not like it
                 shutil.copyfile(fname, ofh_name)
 

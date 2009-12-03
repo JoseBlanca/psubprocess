@@ -154,7 +154,7 @@ class PRunnerTest(unittest.TestCase):
         popen = Popen(cmd, stdout=stdout, stderr=stderr, cmd_def=cmd_def,
                       runner=CondorPopen,
                       runner_conf={'transfer_executable':True})
-        assert popen.wait() == 0 #waits till finishes and looks to the retcod
+        assert popen.wait() == 0 #waits till finishes and looks to the retcode
         assert not open(stdout.name).read()
         assert not open(stderr.name).read()
         assert open(out_file.name).read() == content
@@ -180,7 +180,7 @@ class PRunnerTest(unittest.TestCase):
         cmd_def = [{'options':STDIN, 'io': 'in', 'splitter':'>'}]
         popen = Popen(cmd, stdout=stdout, stderr=stderr, stdin=stdin,
                       cmd_def=cmd_def)
-        assert popen.wait() == 0 #waits till finishes and looks to the retcod
+        assert popen.wait() == 0 #waits till finishes and looks to the retcode
         assert open(stdout.name).read() == content
         assert open(stderr.name).read() == ''
         os.remove(bin)
@@ -263,6 +263,43 @@ class PRunnerTest(unittest.TestCase):
         in_file.close()
         os.remove(bin)
 
+    @staticmethod
+    def test_lots_splits_outfile():
+        'It tests that we can set 2 input files and an output file'
+        bin = create_test_binary()
+
+        splits = 15
+        content = ['hola%d\n' % split for split in range(splits)]
+        content = ''.join(content)
+        in_file1 = NamedTemporaryFile()
+        in_file1.write(content)
+        in_file1.flush()
+        in_file2 = NamedTemporaryFile()
+        in_file2.write(content)
+        in_file2.flush()
+        out_file1 = NamedTemporaryFile()
+        out_file2 = NamedTemporaryFile()
+
+        cmd = [bin]
+        cmd.extend(['-i', in_file1.name, '-t', out_file1.name])
+        cmd.extend(['-x', in_file2.name, '-z', out_file2.name])
+        stdout = NamedTemporaryFile()
+        stderr = NamedTemporaryFile()
+        cmd_def = [{'options': ('-i', '--input'), 'io': 'in', 'splitter':''},
+                   {'options': ('-x', '--input'), 'io': 'in', 'splitter':''},
+                   {'options': ('-t', '--output'), 'io': 'out'},
+                   {'options': ('-z', '--output'), 'io': 'out'}]
+        popen = Popen(cmd, stdout=stdout, stderr=stderr, cmd_def=cmd_def,
+                      splits=splits)
+        assert popen.wait() == 0 #waits till finishes and looks to the retcod
+        assert not open(stdout.name).read()
+        assert not open(stderr.name).read()
+        assert open(out_file1.name).read() == content
+        assert open(out_file2.name).read() == content
+        in_file1.close()
+        in_file2.close()
+        os.remove(bin)
+
 if __name__ == "__main__":
-    #import sys;sys.argv = ['', 'Test.testName']
+    import sys;sys.argv = ['', 'PRunnerTest.test_lots_splits_outfile']
     unittest.main()

@@ -34,8 +34,10 @@ Created on 14/07/2009
 # You should have received a copy of the GNU Affero General Public License
 # along with psubprocess. If not, see <http://www.gnu.org/licenses/>.
 
-from tempfile import NamedTemporaryFile
+from psubprocess.utils import NamedTemporaryFile
 import subprocess, signal, os.path
+
+from subprocess import Popen as PythonPopen
 
 from psubprocess.streams import get_streams_from_cmd
 
@@ -48,21 +50,9 @@ def call(cmd):
         2009-07-02-python-sigpipe'''
         signal.signal(signal.SIGPIPE, signal.SIG_DFL)
 
-#    if stdin is None:
-#        pstdin = None
-#    else:
-#        pstdin = subprocess.PIPE
-    process = subprocess.Popen(cmd, stdout=subprocess.PIPE,
+    process = PythonPopen(cmd, stdout=subprocess.PIPE,
                                stderr=subprocess.PIPE,
                                preexec_fn=subprocess_setup)
-#    if stdin is None:
-#        stdout, stderr = process.communicate()
-#    else:
-#        a = stdin.read()
-#        print a
-#        stdout, stderr = subprocess.Popen.stdin = stdin
-#        print stdin.read()
-#        stdout, stderr = process.communicate(stdin)
     stdout, stderr = process.communicate()
     retcode = process.returncode
     return stdout, stderr, retcode
@@ -106,6 +96,7 @@ def write_condor_job_file(fhand, parameters):
     to_print += 'Queue\n'
     fhand.write(to_print)
     fhand.flush()
+    fhand.close()
 
 class Popen(object):
     '''It launches and controls a condor job.
@@ -151,8 +142,10 @@ class Popen(object):
 
         if 'condor_log' not in runner_conf:
             self._log_file = NamedTemporaryFile(suffix='.log')
+            self._log_file.close()
         else:
             self._log_file = runner_conf['condor_log']
+        #print 'condor_log', self._log_file
         #create condor job file
         condor_job_file = self._create_condor_job_file(cmd, cmd_def,
                                                       self._log_file,
@@ -164,7 +157,9 @@ class Popen(object):
         #launch condor
         self._retcode = None
         self._cluster_number = None
+        #print 'launching'
         self._launch_condor(condor_job_file)
+        #print 'launched'
 
     def _launch_condor(self, condor_job_file):
         'Given the condor_job_file it launches the condor job'

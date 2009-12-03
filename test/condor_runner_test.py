@@ -20,8 +20,7 @@ Created on 14/07/2009
 # along with psubprocess. If not, see <http://www.gnu.org/licenses/>.
 
 import unittest
-from tempfile import NamedTemporaryFile
-from StringIO import StringIO
+from tempfile import NamedTemporaryFile, mkstemp
 import os
 
 from psubprocess.condor_runner import (write_condor_job_file, Popen,
@@ -54,15 +53,17 @@ Input = %s
 Queue
 ''' % (fhand1.name, fhand2.name, flog.name, fhand1.name, fhand2.name,
        stdout_.name, stderr_.name, stdin_.name)
-        fhand = StringIO()
+        fhand = open(mkstemp()[1], 'w')
+
         parameters = {'executable':'/bin/ls', 'log_file':flog,
                       'input_fnames':[fhand1.name, fhand2.name],
                       'arguments':'-i %s -j %s' % (fhand1.name, fhand2.name),
                       'transfer_executable':True, 'transfer_files':True,
                       'stdout':stdout_, 'stderr':stderr_, 'stdin':stdin_}
         write_condor_job_file(fhand, parameters=parameters)
-        condor = fhand.getvalue()
+        condor = open(fhand.name).read()
         assert condor == expected
+        os.remove(fhand.name)
 
     @staticmethod
     def test_run_condor_stdout():
@@ -191,5 +192,5 @@ Queue
         os.remove(bin)
 
 if __name__ == "__main__":
-    #import sys;sys.argv = ['', 'Test.testName']
+    #import sys;sys.argv = ['', 'CondorRunnerTest.test_write_condor_job_file']
     unittest.main()

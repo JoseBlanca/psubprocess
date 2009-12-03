@@ -335,7 +335,6 @@ class Popen(object):
                     new_stream['fname'] = split_files[stream_index][split_index]
                 new_streams.append(new_stream)
             new_streamss.append(new_streams)
-
         return new_streamss, work_dirs
 
     @staticmethod
