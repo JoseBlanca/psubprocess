@@ -41,6 +41,42 @@ class NamedTemporaryDir(object):
         collector decides it'''
         self.close()
 
+class NamedTemporaryFile_alway_closed(object):
+    '''A temporal file that won't be deleted.
+
+    It tries to be always closed and without a refernce to the real file
+    '''
+    def __init__(self, dir=None, suffix='', delete=False):
+        'The init'
+        self.name = tempfile.mkstemp(dir=dir, suffix=suffix)[1]
+        self.open = True
+        self.delete = delete
+    def write(self, string):
+        'It writes something to the file, always append'
+        if self.open:
+            fhand = open(self.name, 'a')
+            fhand.write(string)
+            fhand.close()
+        else:
+            raise ValueError('Write not possible the file is closed')
+    def read(self):
+        'It reads somthing from the file'
+        if self.open:
+            fhand = open(self.name)
+            content = fhand.read()
+            fhand.close()
+            return content
+        else:
+            raise ValueError('Write not possible the file is closed')
+    def flush(self):
+        'Just for compatibility in this class everything is flushed'
+        pass
+    def close(self):
+        'It closes the file'
+        if self.delete:
+            os.remove(self.name)
+        self.open = False
+
 def NamedTemporaryFile(dir=None, delete=False, suffix=''):
     '''It creates a temporary file that won't be deleted when close
 

@@ -140,6 +140,11 @@ class Popen(object):
             #we have to be sure that stdin is open for read
             if stdin:
                 stdin = open(stdin.name)
+            #we have to be sure that stdout and stderr are open for write
+            if stdout:
+                stdout = open(stdout.name, 'w')
+            if stderr:
+                stderr = open(stderr.name, 'w')
             #we launch the job
             if runner == StdPopen:
                 popen = runner(cmd, stdout=stdout, stderr=stderr, stdin=stdin)

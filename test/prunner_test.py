@@ -268,7 +268,7 @@ class PRunnerTest(unittest.TestCase):
         'It tests that we can set 2 input files and an output file'
         bin = create_test_binary()
 
-        splits = 15
+        splits = 100
         content = ['hola%d\n' % split for split in range(splits)]
         content = ''.join(content)
         in_file1 = NamedTemporaryFile()
@@ -301,5 +301,5 @@ class PRunnerTest(unittest.TestCase):
         os.remove(bin)
 
 if __name__ == "__main__":
-    import sys;sys.argv = ['', 'PRunnerTest.test_lots_splits_outfile']
+    #import sys;sys.argv = ['', 'PRunnerTest.test_lots_splits_outfile']
     unittest.main()
