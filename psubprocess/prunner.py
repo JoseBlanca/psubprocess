@@ -54,6 +54,7 @@ from psubprocess import condor_runner
 from psubprocess.splitters import (create_file_splitter_with_re,
                                    create_non_splitter_splitter)
 from psubprocess.utils import NamedTemporaryDir, copy_file_mode
+from psubprocess.cmd_def_from_cmd import get_cmd_def_from_cmd
 
 RUNNER_MODULES = {}
 RUNNER_MODULES['condor_runner'] = condor_runner
@@ -99,10 +100,12 @@ class Popen(object):
         #if the runner is not given, we use subprocess.Popen
         if runner is None:
             runner = StdPopen
-        if cmd_def is None:
-            if stdin is not None:
-                raise ValueError('No cmd_def given but stdin present')
-            cmd_def = []
+        #is the cmd_def set in the command?
+        cmd, cmd_def = get_cmd_def_from_cmd(cmd)
+
+        if not cmd_def and stdin is not None:
+            raise ValueError('No cmd_def given but stdin present')
+
         #if the number of splits is not given we calculate them
         if splits is None:
             splits = self.default_splits(runner)
