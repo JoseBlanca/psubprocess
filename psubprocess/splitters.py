@@ -169,6 +169,14 @@ def create_file_splitter_with_re(expression):
     '''
     return _create_file_splitter(kind='re', expression=expression)
 
+def get_splitter(expression):
+    '''If the expression is a known splitter kind it returns it, otherwise it
+    creates a regular expression based splitter'''
+    if expression == 'fastq':
+        return fastq_splitter
+    else:
+        return create_file_splitter_with_re(expression)
+
 def create_non_splitter_splitter(copy_files=False):
     '''It creates an splitter function that will not split the given file.
 

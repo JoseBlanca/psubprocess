@@ -51,7 +51,7 @@ import os, copy
 from psubprocess.streams import get_streams_from_cmd, STDOUT, STDERR, STDIN
 from psubprocess.condor_runner import call
 from psubprocess import condor_runner
-from psubprocess.splitters import (create_file_splitter_with_re,
+from psubprocess.splitters import (get_splitter,
                                    create_non_splitter_splitter)
 from psubprocess.utils import NamedTemporaryDir, copy_file_mode
 from psubprocess.cmd_def_from_cmd import get_cmd_def_from_cmd
@@ -101,7 +101,14 @@ class Popen(object):
         if runner is None:
             runner = StdPopen
         #is the cmd_def set in the command?
-        cmd, cmd_def = get_cmd_def_from_cmd(cmd)
+        cmd, cmd_cmd_def = get_cmd_def_from_cmd(cmd)
+
+        if cmd_cmd_def:
+            cmd_def = cmd_cmd_def
+        elif cmd_def:
+            cmd_def = cmd_def
+        else:
+            cmd_def = []
 
         if not cmd_def and stdin is not None:
             raise ValueError('No cmd_def given but stdin present')
@@ -284,9 +291,11 @@ class Popen(object):
                 raise ValueError(msg)
             else:
                 splitter = stream['splitter']
-            #the splitter can be a re, in that case with create the function
+            #if the splitter is a function we assume that it will know how to
+            #split the given file, otherwise should be a registered type of
+            #splitter or a regular expression
             if '__call__' not in dir(splitter):
-                splitter = create_file_splitter_with_re(splitter)
+                splitter = get_splitter(splitter)
             #we split the input files in the splits, every file will be in one
             #of the given work_dirs
             #the stream can have fname or fhands
