@@ -45,7 +45,7 @@ class PRunnerTest(unittest.TestCase):
         stderr = NamedTemporaryFile()
         cmd_def = [{'options': ('-i', '--input'), 'io': 'in', 'splitter':''}]
         popen = Popen(cmd, stdout=stdout, stderr=stderr, cmd_def=cmd_def)
-        assert popen.wait() == 0 #waits till finishes and looks to the retcod
+        assert popen.wait() == 0 #waits till finishes and looks to the retcode
         assert open(stdout.name).read() == 'hola'
         in_file.close()
         os.remove(bin)
@@ -268,7 +268,7 @@ class PRunnerTest(unittest.TestCase):
         'It tests that we can set 2 input files and an output file'
         bin = create_test_binary()
 
-        splits = 100
+        splits = 200
         content = ['hola%d\n' % split for split in range(splits)]
         content = ''.join(content)
         in_file1 = NamedTemporaryFile()
@@ -301,5 +301,5 @@ class PRunnerTest(unittest.TestCase):
         os.remove(bin)
 
 if __name__ == "__main__":
-    #import sys;sys.argv = ['', 'PRunnerTest.test_lots_splits_outfile']
+    #import sys;sys.argv = ['', 'PRunnerTest.test_file_in']
     unittest.main()

@@ -22,7 +22,7 @@ Created on 16/07/2009
 from tempfile import NamedTemporaryFile
 import os, stat, shutil
 
-TEST_BINARY = '''#!/usr/bin/env python
+TEST_BINARY = '''#!/usr/bin/env python2.6
 import sys, shutil, os, time
 
 args = sys.argv

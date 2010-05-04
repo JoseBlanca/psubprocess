@@ -404,7 +404,7 @@ class Popen(object):
                 out_file = stream['fname']
             else:
                 out_file = stream['fhand']
-            default_cat_joiner(out_file, part_out_fnames)
+            joiner(out_file, part_out_fnames)
 
         #now we can delete the tempdirs
         for work_dir in self._jobs['work_dirs']:

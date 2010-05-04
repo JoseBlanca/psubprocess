@@ -20,7 +20,8 @@ Created on 03/12/2009
 # along with psubprocess. If not, see <http://www.gnu.org/licenses/>.
 
 import re, os, shutil
-from psubprocess.utils import NamedTemporaryFile, copy_file_mode
+from tempfile import NamedTemporaryFile
+from psubprocess.utils import copy_file_mode
 from Bio.SeqIO.QualityIO import FastqGeneralIterator
 
 def _calculate_divisions(num_items, splits):

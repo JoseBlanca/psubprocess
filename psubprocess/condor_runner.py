@@ -34,7 +34,7 @@ Created on 14/07/2009
 # You should have received a copy of the GNU Affero General Public License
 # along with psubprocess. If not, see <http://www.gnu.org/licenses/>.
 
-from psubprocess.utils import NamedTemporaryFile
+from tempfile import NamedTemporaryFile
 import subprocess, signal, os.path
 
 from subprocess import Popen as PythonPopen
