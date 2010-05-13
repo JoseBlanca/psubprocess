@@ -1,0 +1,111 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>psubprocess &mdash; psubprocess v0.1 documentation</title>
+    <link rel="stylesheet" href="_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '',
+        VERSION:     '0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="psubprocess v0.1 documentation" href="#" />
+    <link rel="next" title="psubprocess" href="introduction.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="introduction.html" title="psubprocess"
+             accesskey="N">next</a> |</li>
+        <li><a href="#">psubprocess v0.1 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="psubprocess">
+<h1>psubprocess<a class="headerlink" href="#psubprocess" title="Permalink to this headline">¶</a></h1>
+<p>is a lightweight and unobtrusive application that turns non-parallel applications into parallel ones transparently.</p>
+<p>psubprocess has been built up to ease the use of multiprocessor systems and PC-clusters. It is common to have one of those hardware systems at hand, but, in most cases, the software is not prepared to squeeze the power offered by them. psubprocess is an automatic parallelization solution that deals with the most simple and common case, we have a lot of items to process and a software that can deal with each item in an independent way. In these cases doCluster splits the input files, run independent processes for each batch of items and merges the outputs in a completely transparent way.</p>
+<p>Transforming a non-parallel application into a parallel one using psubprocess is trivial. Just install it and run your application, there is no need to recompile or to change its interface.</p>
+<p>For example let&#8217;s suppose that we have a program that processes an input file with 1000 items (one per line) and creates an output file with 1000 modified items using with the command:</p>
+<div class="highlight-python"><pre>$ foo_analysis -i input_file -o output_file</pre>
+</div>
+<p>To parallelize it using psubprocess we would just do:</p>
+<div class="highlight-python"><pre>$ run_in_parallel.py -c "foo_analysis &gt;#-i# hola.txt &lt;#-o# output_file"</pre>
+</div>
+<p>psubprocess can also be used as a library to parallelize your own python software.</p>
+<p>Contents:</p>
+<div class="toctree-wrapper compound">
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h4>Next topic</h4>
+  <p class="topless"><a href="introduction.html"
+                        title="next chapter">psubprocess</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="_sources/index.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" size="18" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="introduction.html" title="psubprocess"
+             >next</a> |</li>
+        <li><a href="#">psubprocess v0.1 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2010, Jose Blanca.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.0pre.
+    </div>
+  </body>
+</html>
