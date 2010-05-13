@@ -2,3 +2,5 @@
 .pydevproject
 *.pyc
 *.tar.gz
+doc/_build/
+doc/downloads/
