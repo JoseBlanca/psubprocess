@@ -4,3 +4,6 @@
 *.tar.gz
 doc/_build/
 doc/downloads/
+build/
+dist/
+psubprocess.egg-info/
