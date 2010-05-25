@@ -7,6 +7,7 @@ Created on 25/03/2009
 #taken from django-tagging
 
 import os
+from distutils.core import setup
 
 PACKAGE_DIR = 'psubprocess'
 SCRIPTS_DIR = 'scripts'
@@ -57,7 +58,6 @@ for dirpath, dirnames, filenames in os.walk(os.path.join(root_dir,
         elif filename.endswith('.py'):
             scripts.append(os.path.join(dirpath, filename))
 
-from setuptools import setup
 setup(
     # basic package data
     name = PACKAGE_DIR,
