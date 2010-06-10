@@ -78,6 +78,32 @@ def _fastq_items_counter(fhand, expression=None):
         nitems += 1
     return nitems
 
+def _blank_line_items_counter(fhand, expression=None):
+    'It returns the number of items separated by blank line'
+    nitems = 0
+    item_read = False
+    for line in fhand:
+        line = line.rstrip()
+        if line:
+            item_read = True
+        elif item_read and not line:
+            item_read = False
+            nitems += 1
+    return nitems
+
+def _items_in_blank_line(fhand, expression=None):
+    'It returns the items separated by blank lines'
+    buffer_ = ''
+    for line in fhand:
+        line = line.rstrip()
+        if line:
+            buffer_ += line + '\n'
+        elif buffer_ and not line:
+            yield buffer_ + '\n'
+            buffer_ = ''
+    if buffer_:
+        yield buffer_ + '\n'
+
 def _create_file_splitter(kind, expression=None):
     '''Given an expression it creates a file splitter.
 
@@ -86,9 +112,11 @@ def _create_file_splitter(kind, expression=None):
     expression.
     '''
     item_counters = {'re': _re_item_counter,
-                     'fastq': _fastq_items_counter}
+                     'fastq': _fastq_items_counter,
+                     'blank_line': _blank_line_items_counter}
     item_splitters = {'re':_items_in_file,
-                      'fastq':_items_in_fastq}
+                      'fastq':_items_in_fastq,
+                      'blank_line': _items_in_blank_line}
 
     item_counter = item_counters[kind]
     item_splitter = item_splitters[kind]
@@ -160,6 +188,8 @@ def _create_file_splitter(kind, expression=None):
     return splitter
 
 fastq_splitter = _create_file_splitter(kind='fastq')
+
+blank_line_splitter = _create_file_splitter(kind='blank_line')
 
 def create_file_splitter_with_re(expression):
     '''Given an expression it creates a file splitter.

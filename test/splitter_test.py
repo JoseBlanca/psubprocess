@@ -22,7 +22,8 @@ Created on 03/12/2009
 import unittest
 from tempfile import NamedTemporaryFile
 from psubprocess.prunner import NamedTemporaryDir
-from psubprocess.splitters import create_file_splitter_with_re, fastq_splitter
+from psubprocess.splitters import (create_file_splitter_with_re, fastq_splitter,
+                                   blank_line_splitter)
 
 class SplitterTest(unittest.TestCase):
     'It test that we can split the input files'
@@ -67,6 +68,26 @@ class SplitterTest(unittest.TestCase):
         dir2.close()
         dir3.close()
 
+    @staticmethod
+    def test_blank_line_splitter():
+        'It tests the blank line splitter'
+        fastq = 'hola\n\ncaracola\n\n'
+        file_ = NamedTemporaryFile()
+        file_.write(fastq)
+        file_.flush()
+
+        splitter = blank_line_splitter
+        dir1 = NamedTemporaryDir()
+        dir2 = NamedTemporaryDir()
+        dir3 = NamedTemporaryDir()
+        new_files = splitter(file_, [dir1, dir2, dir3])
+        assert len(new_files) == 2
+
+        assert open(new_files[0].name).read() == 'hola\n\n'
+        assert open(new_files[1].name).read() == 'caracola\n\n'
+        dir1.close()
+        dir2.close()
+        dir3.close()
 
 if __name__ == "__main__":
     #import sys;sys.argv = ['', 'Test.testName']
