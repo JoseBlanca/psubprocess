@@ -205,6 +205,8 @@ def get_splitter(expression):
     creates a regular expression based splitter'''
     if expression == 'fastq':
         return fastq_splitter
+    elif expression == 'blank_line':
+        return blank_line_splitter
     else:
         return create_file_splitter_with_re(expression)
 
