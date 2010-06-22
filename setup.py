@@ -9,6 +9,8 @@ Created on 25/03/2009
 import os
 from distutils.core import setup
 
+import psubprocess
+
 PACKAGE_DIR = 'psubprocess'
 SCRIPTS_DIR = 'scripts'
 
@@ -61,7 +63,7 @@ for dirpath, dirnames, filenames in os.walk(os.path.join(root_dir,
 setup(
     # basic package data
     name = PACKAGE_DIR,
-    version = "0.0.1",
+    version = psubprocess.__version__,
     author='Jose Blanca, Peio Ziarsolo',
     author_email='jblanca@btc.upv.es',
     description='runs commands in parallel environments',
