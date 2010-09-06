@@ -22,6 +22,8 @@ Created on 03/12/2009
 import re, os, shutil
 from tempfile import NamedTemporaryFile
 from psubprocess.utils import copy_file_mode
+from psubprocess.bam import (bam2sam, sam2bam, get_bam_header,
+                             bam_unigene_counter, unigenes_in_bam)
 from Bio.SeqIO.QualityIO import FastqGeneralIterator
 
 def _calculate_divisions(num_items, splits):
@@ -113,13 +115,25 @@ def _create_file_splitter(kind, expression=None):
     '''
     item_counters = {'re': _re_item_counter,
                      'fastq': _fastq_items_counter,
-                     'blank_line': _blank_line_items_counter}
+                     'blank_line': _blank_line_items_counter,
+                     'bam':bam_unigene_counter}
     item_splitters = {'re':_items_in_file,
                       'fastq':_items_in_fastq,
-                      'blank_line': _items_in_blank_line}
+                      'blank_line': _items_in_blank_line,
+                      'bam':unigenes_in_bam}
+    preproces_funcs  = {'bam':bam2sam}
+    postproces_funcs = {'bam':sam2bam}
 
-    item_counter = item_counters[kind]
+    header_funcs = {'bam':get_bam_header}
+    footer_funcs = {}
+
+    item_counter  = item_counters[kind]
     item_splitter = item_splitters[kind]
+
+    preprocesor  = preproces_funcs[kind] if kind in preproces_funcs else None
+    postprocesor = postproces_funcs[kind] if kind in postproces_funcs else None
+    header_extractor = header_funcs[kind] if kind in header_funcs else None
+    footer_extractor = footer_funcs[kind] if kind in footer_funcs else None
 
     if expression is not None and isinstance(expression, str):
         expression = re.compile(expression)
@@ -141,6 +155,34 @@ def _create_file_splitter(kind, expression=None):
         else:
             fname = file_.name
             file_is_str = False
+
+        # do we have header?
+        if header_extractor is not None:
+            header_fhand = NamedTemporaryFile()
+            fhand = open(fname)
+            header_extractor(fhand, header_fhand)
+            fhand.close()
+        else:
+            header_fhand = None
+
+        # do we have footer?
+        if footer_extractor is not None:
+            footer_fhand = NamedTemporaryFile()
+            fhand = open(fname)
+            footer_extractor(fhand, header_fhand)
+            fhand.close()
+        else:
+            footer_fhand = None
+
+        # File preprocess
+        if preprocesor is not None:
+            suffix = os.path.splitext(fname)[-1]
+            preprocessed_fhand = NamedTemporaryFile(suffix=suffix)
+            fhand = open(fname)
+            preprocesor(fhand, preprocessed_fhand)
+            fhand.close()
+            fname = preprocessed_fhand.name
+
 
         #how many splits do we want?
         nsplits = len(work_dirs)
@@ -173,9 +215,31 @@ def _create_file_splitter(kind, expression=None):
                 ofh = NamedTemporaryFile(dir=work_dir.name, delete=False,
                                          suffix=suffix)
                 copy_file_mode(fhand.name, ofh.name)
+
+                # header
+                if header_fhand is not None:
+                    header_fhand.seek(0)
+                    ofh.write(header_fhand.read())
+
                 for item_index in range(nitems):
                     ofh.write(items.next())
                 ofh.flush()
+
+                # footer
+                if footer_fhand is not None:
+                    footer_fhand.seek(0)
+                    ofh.write(footer_fhand.read())
+
+                #postprocess
+                if postprocesor is not None:
+                    newofh = NamedTemporaryFile(dir=work_dir.name, delete=False,
+                                                suffix=suffix)
+                    postprocesor(ofh, newofh)
+                    ofh_path = ofh.name
+                    ofh.close()
+                    os.remove(ofh_path)
+                    ofh = newofh
+
                 #we have to close the files otherwise we can run out of files
                 #in the os filesystem
                 if file_is_str:
@@ -184,12 +248,15 @@ def _create_file_splitter(kind, expression=None):
                     new_files.append(ofh)
                 ofh.close()
                 splits_made += 1
+
         return new_files
     return splitter
 
 fastq_splitter = _create_file_splitter(kind='fastq')
 
 blank_line_splitter = _create_file_splitter(kind='blank_line')
+
+bam_splitter = _create_file_splitter(kind='bam')
 
 def create_file_splitter_with_re(expression):
     '''Given an expression it creates a file splitter.

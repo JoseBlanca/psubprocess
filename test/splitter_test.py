@@ -19,11 +19,13 @@ Created on 03/12/2009
 # You should have received a copy of the GNU Affero General Public License
 # along with psubprocess. If not, see <http://www.gnu.org/licenses/>.
 
-import unittest
+import unittest, os
+from StringIO import StringIO
 from tempfile import NamedTemporaryFile
+from franklin.utils.misc_utils import DATA_DIR
 from psubprocess.prunner import NamedTemporaryDir
 from psubprocess.splitters import (create_file_splitter_with_re, fastq_splitter,
-                                   blank_line_splitter)
+                                   bam_splitter, blank_line_splitter)
 
 class SplitterTest(unittest.TestCase):
     'It test that we can split the input files'
@@ -88,6 +90,26 @@ class SplitterTest(unittest.TestCase):
         dir1.close()
         dir2.close()
         dir3.close()
+
+    @staticmethod
+    def test_bam_splitter():
+        'It test bam splitter'
+
+        bam_fhand = os.path.join(DATA_DIR, 'seq.bam')
+
+
+        splitter = bam_splitter
+        dir1 = NamedTemporaryDir()
+        dir2 = NamedTemporaryDir()
+        dir3 = NamedTemporaryDir()
+        new_files = splitter(bam_fhand, [dir1, dir2, dir3])
+        assert  len(new_files) == 2
+
+        dir1.close()
+        dir2.close()
+        dir3.close()
+
+
 
 if __name__ == "__main__":
     #import sys;sys.argv = ['', 'Test.testName']
