@@ -25,6 +25,7 @@ import os
 
 from psubprocess import Popen
 from psubprocess.streams import STDIN
+from psubprocess.utils import DATA_DIR
 from test_utils import create_test_binary
 
 class PRunnerTest(unittest.TestCase):
@@ -300,6 +301,33 @@ class PRunnerTest(unittest.TestCase):
         in_file2.close()
         os.remove(bin)
 
+    @staticmethod
+    def test_bam_infile_outfile():
+        'It tests that we can set an bam  input and output file'
+        bin = create_test_binary()
+        #with infile
+        in_file = open(os.path.join(DATA_DIR, 'seq.bam'))
+        out_file = NamedTemporaryFile()
+
+        cmd = [bin]
+        cmd.extend(['-i', in_file.name, '-t', out_file.name])
+        stdout = NamedTemporaryFile()
+        stderr = NamedTemporaryFile()
+        cmd_def = [{'options': ('-i', '--input'), 'io': 'in', 'splitter':'bam'},
+                   {'options': ('-t', '--output'), 'io': 'out', 'joiner':'bam'}]
+        popen = Popen(cmd, stdout=stdout, stderr=stderr, cmd_def=cmd_def)
+
+
+
+        assert popen.wait() == 0 #waits till finishes and looks to the retcod
+
+#        print open(out_file.name).read()
+#        print out_file.name
+
+        in_file.close()
+        os.remove(bin)
+
+
 if __name__ == "__main__":
-    #import sys;sys.argv = ['', 'PRunnerTest.test_file_in']
+#    import sys;sys.argv = ['', 'PRunnerTest.test_bam_infile_outfile']
     unittest.main()

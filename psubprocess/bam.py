@@ -5,14 +5,19 @@ Created on 06/09/2010
 
 @author: peio
 '''
-from psubprocess.utils import call
+from psubprocess.utils import call, get_fhand
+from tempfile import NamedTemporaryFile
 
 
-def bam2sam(bam_fhand, sam_fhand):
+def bam2sam(bam_fhand, sam_fhand, header=False):
     '''It converts between bam and sam.'''
     bam_fhand.seek(0)
+
     cmd = ['samtools', 'view', bam_fhand.name, '-o', sam_fhand.name]
+    if header:
+        cmd.insert(2, '-h')
     call(cmd, raise_on_error=True)
+    sam_fhand.flush()
 
 def sam2bam(sam_fhand, bam_fhand, header=None):
     'It converts between bam and sam.'
@@ -21,6 +26,7 @@ def sam2bam(sam_fhand, bam_fhand, header=None):
         pass
     cmd = ['samtools', 'view', '-bSh', '-o', bam_fhand.name, sam_fhand.name]
     call(cmd, raise_on_error=True)
+    bam_fhand.flush()
 
 def get_bam_header(bam_fhand, header_fhand):
     'It gets the header of the bam'
@@ -49,5 +55,37 @@ def unigenes_in_bam(fhand, expression=None):
         unigene_prev = unigene
     else:
         yield unigene_lines
+
+def bam_joiner(out_file, in_files):
+    'It joins bam files'
+    #are we working with fhands or fnames?
+    out_fhand = get_fhand(out_file, writable=True)
+    sam_fhand = NamedTemporaryFile(suffix='.sam')
+
+    first = True
+    for file_ in in_files:
+        file_ = get_fhand(file_)
+        if first:
+            first = False
+            bam2sam(file_, sam_fhand, header=True)
+
+        else:
+            sam_fhand_temp = NamedTemporaryFile(suffix='.sam')
+            bam2sam(file_, sam_fhand_temp)
+            sam_fhand_temp.seek(0)
+            sam_fhand2 = open(sam_fhand.name, 'a')
+            sam_fhand2.write(open(sam_fhand_temp.name).read())
+            sam_fhand2.close()
+
+    sam_fhand.flush()
+    sam2bam(sam_fhand, out_fhand)
+    out_fhand.flush()
+
+
+
+
+
+
+
 
 

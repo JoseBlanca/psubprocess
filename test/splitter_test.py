@@ -20,9 +20,8 @@ Created on 03/12/2009
 # along with psubprocess. If not, see <http://www.gnu.org/licenses/>.
 
 import unittest, os
-from StringIO import StringIO
 from tempfile import NamedTemporaryFile
-from franklin.utils.misc_utils import DATA_DIR
+from psubprocess.utils import DATA_DIR
 from psubprocess.prunner import NamedTemporaryDir
 from psubprocess.splitters import (create_file_splitter_with_re, fastq_splitter,
                                    bam_splitter, blank_line_splitter)
@@ -97,7 +96,6 @@ class SplitterTest(unittest.TestCase):
 
         bam_fhand = os.path.join(DATA_DIR, 'seq.bam')
 
-
         splitter = bam_splitter
         dir1 = NamedTemporaryDir()
         dir2 = NamedTemporaryDir()
@@ -108,8 +106,6 @@ class SplitterTest(unittest.TestCase):
         dir1.close()
         dir2.close()
         dir3.close()
-
-
 
 if __name__ == "__main__":
     #import sys;sys.argv = ['', 'Test.testName']

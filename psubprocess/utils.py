@@ -3,6 +3,7 @@ Created on 03/12/2009
 
 @author: jose
 '''
+import psubprocess
 
 # Copyright 2009 Jose Blanca, Peio Ziarsolo, COMAV-Univ. Politecnica Valencia
 # This file is part of psubprocess.
@@ -20,6 +21,9 @@ Created on 03/12/2009
 # along with psubprocess. If not, see <http://www.gnu.org/licenses/>.
 
 import tempfile, os, shutil, signal, subprocess, logging
+
+DATA_DIR = os.path.join(os.path.split(psubprocess.__path__[0])[0], 'psubprocess',
+                         'data')
 
 class NamedTemporaryDir(object):
     '''This class creates temporary directories '''
@@ -118,3 +122,10 @@ def call(cmd, environment=None, stdin=None, raise_on_error=False,
         raise RuntimeError(msg)
 
     return stdout_str, stderr_str, retcode
+
+def get_fhand(file_, writable=False):
+    'Given an fhand or and fpath it returns an fhand'
+    if isinstance(file_, basestring):
+        mode = 'w' if  writable else 'r'
+        file_ = open(file_, mode)
+    return file_

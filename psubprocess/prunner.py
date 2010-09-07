@@ -55,6 +55,7 @@ from psubprocess.splitters import (get_splitter,
                                    create_non_splitter_splitter)
 from psubprocess.utils import NamedTemporaryDir, copy_file_mode
 from psubprocess.cmd_def_from_cmd import get_cmd_def_from_cmd
+from psubprocess.bam import bam_joiner
 
 RUNNER_MODULES = {}
 RUNNER_MODULES['condor_runner'] = condor_runner
@@ -394,12 +395,9 @@ class Popen(object):
                     part_out_fnames.append(this_stream['fname'])
                 else:
                     part_out_fnames.append(this_stream['fhand'])
-            #we need a function to join this stream
-            joiner = None
-            if joiner in stream:
-                joiner = stream['joiner']
-            else:
-                joiner = default_cat_joiner
+           
+            joiner = _get_joiner(stream)
+
             if 'fname' in stream:
                 out_file = stream['fname']
             else:
@@ -466,6 +464,19 @@ class Popen(object):
                 pid = popen.pid
                 call(['kill', '-6', str(pid)])
 
+
+def _get_joiner(stream):
+    'It gets the joiner'
+    joiners = {'bam':bam_joiner}
+    if 'joiner' in stream:
+        joiner = stream['joiner']
+    else:
+        joiner = default_cat_joiner
+
+    if '__call__' not in dir(joiner):
+        joiner = joiners[joiner]
+
+    return joiner
 
 def default_cat_joiner(out_file_, in_files_):
     '''It joins the given in files into the given out file.

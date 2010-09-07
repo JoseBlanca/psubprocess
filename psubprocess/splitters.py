@@ -274,6 +274,8 @@ def get_splitter(expression):
         return fastq_splitter
     elif expression == 'blank_line':
         return blank_line_splitter
+    elif expression == 'bam':
+        return bam_splitter
     else:
         return create_file_splitter_with_re(expression)
 
