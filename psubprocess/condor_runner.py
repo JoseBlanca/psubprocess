@@ -96,7 +96,6 @@ def write_condor_job_file(fhand, parameters):
     to_print += 'Queue\n'
     fhand.write(to_print)
     fhand.flush()
-    fhand.close()
 
 class Popen(object):
     '''It launches and controls a condor job.
@@ -160,6 +159,8 @@ class Popen(object):
         #print 'launching'
         self._launch_condor(condor_job_file)
         #print 'launched'
+        # close the created job file
+        condor_job_file.close()
 
     def _launch_condor(self, condor_job_file):
         'Given the condor_job_file it launches the condor job'

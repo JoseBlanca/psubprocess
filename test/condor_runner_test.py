@@ -192,5 +192,5 @@ Queue
         os.remove(bin)
 
 if __name__ == "__main__":
-    #import sys;sys.argv = ['', 'CondorRunnerTest.test_write_condor_job_file']
+    #import sys;sys.argv = ['', 'CondorRunnerTest.test_run_condor_stdout']
     unittest.main()
